@@ -1,3 +1,48 @@
+<div align="center">
+   <h1>Pseudocomfy Custom Nodes</h1>
+  <img src="readme/logo.svg" alt="description" width="300"/>
+</div>
+
+### A ComfyUI custom nodes package for architectural rendering that works with a Rhino Pseudorandom plugin.
+
+![Workflow Example Img](readme/img.png)
+
+
+## Spatial-package (input JSON) format example:
+   ```sh
+      {
+         "width": 0,
+         "height": 0,
+         "pmts_environment": 
+         {
+            "pmt_scene" : "a prompt describing the scene as a whole",
+            "pmt_style" : "a prompt describing the rendering style",
+            "pmt_negative" : "a prompt describing what should not be in the render",
+         },
+         "map_semantic": 
+         [
+            {
+               "pmt_txt": "an text prompt for the object, MAY BE NULL or EMPTY",
+               "pmt_img": "BASE 64 ENCODED BITMAP of a guidence image, MAY BE NULL OR EMPTY", 
+               "mask": "BASE 64 ENCODED BITMAP",
+               "pct": 0.00 
+            },
+            {
+               "pmt_txt": "an text prompt for the object, MAY BE NULL or EMPTY",
+               "pmt_img": "BASE 64 ENCODED BITMAP of a guidence image, MAY BE NULL OR EMPTY", 
+               "mask": "BASE 64 ENCODED BITMAP",
+               "pct": 0.00 
+            },
+           ...
+         ],
+         "img_depth": "BASE 64 ENCODED IMAGE",
+         "img_edge": "optional BASE 64 ENCODED IMAGE"
+         "pseudorandom_spatial_package_version": "{{schema version that this package adheres to in x.xx format}}",	
+      }
+   ```
+
+---
+
 ### --Manual installation instructions--
 
 **IMPORTANT:** If you're using the Windows portable version of ComfyUI, which includes an embedded Python environment, you will first need to install the `diffusers` module:
@@ -98,3 +143,19 @@ Clone this repo inside your `custom_nodes` folder by:
       git clone https://github.com/Pseudotools/Pseudocomfy.git
       ```
    
+---
+
+### Acknowledgments
+
+This project incorporates code that has been adapted or directly copied from the following open-source packages:
+
+- **ComfyUI_densediffusion package by Chenlei Hu ("huchenlei")**  
+  Original source: [https://github.com/huchenlei/ComfyUI_densediffusion](https://github.com/huchenlei/ComfyUI_densediffusion)
+
+- **ComfyUI_IPAdapter_plus package by Matteo Spinelli ("Matt3o/Cubiq")**  
+  Original source: [https://github.com/cubiq/ComfyUI_IPAdapter_plus](https://github.com/cubiq/ComfyUI_IPAdapter_plus)
+
+- **ComfyUI-Impact-Pack package by Dr.Lt.Data ("ltdrdata")**  
+  Original source: [https://github.com/ltdrdata/ComfyUI-Impact-Pack](https://github.com/ltdrdata/ComfyUI-Impact-Pack)
+
+The code from these packages is used under the terms of their respective licenses, with modifications made to fit the specific requirements of this project. The contributions of these developers are greatly appreciated, and their work has been instrumental in the development of this project.
