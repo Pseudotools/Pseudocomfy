@@ -3,7 +3,7 @@
   <img src="readme/logo.svg" alt="description" width="300"/>
 </div>
 
-### A ComfyUI custom nodes package for architectural rendering that works with a Rhino Pseudorandom plugin.
+### A ComfyUI custom nodes package for architectural rendering that works with the Rhino Pseudorandom plugin.
 
 ![Workflow Example Img](readme/img.png)
 
