@@ -1,6 +1,13 @@
+# ==============================================================================
+# This file contains code that has been adapted or directly copied from the
+# ComfyUI-Impact-Pack package by Dr.Lt.Data ("ltdrdata").
+# Original source: https://github.com/ltdrdata/ComfyUI-Impact-Pack
+#
+# This code is used under the terms of the original license, with modifications
+# made to suit the needs of this project.
+# ==============================================================================
 import torch
-
-from .helpers import mask_to_image
+from .helpers.helpers import mask_to_image
 
 
 class MakeMaskBatch:

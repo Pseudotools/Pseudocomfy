@@ -1,6 +1,6 @@
-from .combiner import combine, apply
-from .helpers import *
-
+from .helpers.helpers import *
+from .helpers.dense_diffusion import combine, apply
+from .helpers.ipadapter import apply_ipadapter
 
 
 class ProcessJSON:
@@ -8,7 +8,7 @@ class ProcessJSON:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "json_path": ("DICT", ),
+                "json_data": ("DICT", ),
                 "scale_img_by": ("FLOAT", {"default": 2.0, "min": 1.0, "max": 8.0, "step": 0.5})
             },
         }
@@ -39,10 +39,8 @@ class ProcessJSON:
 
     CATEGORY = "Pseudocomfy/Processors"
 
-    def process_json(self, json_path, scale_img_by):
-        data = json_path
-
-        map_semantic = data['map_semantic']
+    def process_json(self, json_data, scale_img_by):
+        map_semantic = json_data['map_semantic']
         object_txts = [entry['pmt_txt'] for entry in map_semantic]
         object_imgs_base64 = [entry['pmt_img'] for entry in map_semantic]
         
@@ -53,17 +51,17 @@ class ProcessJSON:
 
         
         # base prompts (pos/neg):
-        pmts_environment = data['pmts_environment']
+        pmts_environment = json_data['pmts_environment']
         pmt_scene = pmts_environment['pmt_scene']
         pmt_style = pmts_environment['pmt_style']
         pmt_negative = pmts_environment['pmt_negative']
 
-        width = make_multiple_of_64(data['width'])
-        height = make_multiple_of_64(data['height'])
+        width = make_multiple_of_64(json_data['width'])
+        height = make_multiple_of_64(json_data['height'])
 
 
         # depth image:
-        img_depth = data['img_depth']
+        img_depth = json_data['img_depth']
         depth_tensor = decode_and_scale_depth(img_depth, scale_img_by, width, height)
 
         masks = []
@@ -203,7 +201,7 @@ class MixedBuiltinCombinerIPAdaper:
                 for i in range(len(obj_pmts_conds_list)):
                     
                     if object_imgs[i] is not None:
-                        model, _ = apply_ipadapter_cloned(model, ipadapter, object_imgs[i], ipadapter_weight, 0.0, 1.0, 'standard', masks[i])
+                        model, _ = apply_ipadapter(model, ipadapter, object_imgs[i], ipadapter_weight, 0.0, 1.0, 'standard', masks[i])
 
         
         return (model, positive_prompt_cond, negative_prompt_cond)

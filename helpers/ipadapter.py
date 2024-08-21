@@ -1,3 +1,12 @@
+# ==============================================================================
+# This file contains code that has been adapted or directly copied from the
+# ComfyUI_IPAdapter_plus package by Matteo Spinelli ("Matt3o/Cubiq").
+# Original source: https://github.com/cubiq/ComfyUI_IPAdapter_plus
+#
+# This code is used under the terms of the original license, with modifications
+# made to suit the needs of this project.
+# ==============================================================================
+
 import torch
 import comfy.model_management as model_management
 import torch.nn as nn
@@ -8,14 +17,12 @@ import math
 from einops import rearrange
 from einops.layers.torch import Rearrange
 
-
 import torch.nn.functional as F
 from comfy.ldm.modules.attention import optimized_attention
 
 '''
-START CrossAttentionPatch.py:
+CrossAttentionPatch.py:
 '''
-
 
 class Attn2Replace:
     def __init__(self, callback=None, **kwargs):
@@ -225,13 +232,7 @@ def ipadapter_attention(out, q, k, v, extra_options, module_key='', ipadapter=No
 
 
 '''
-END CrossAttentionPatch.py
-'''
-
-
-
-'''
-START image_proj_models.py:
+image_proj_models.py:
 '''
 
 # FFN
@@ -515,18 +516,8 @@ class ImageProjModel(nn.Module):
 
 
 
-
 '''
-END image_proj_models.py:
-'''
-
-
-
-
-
-
-'''
-START utils.py:
+utils.py:
 '''
 
 def split_tiles(embeds, num_split):
@@ -693,8 +684,6 @@ def encode_image_masked_(clip_vision, image, mask=None, batch_size=0, clipvision
 
 
 
-
-
 def tensor_to_size(source, dest_size):
     if isinstance(dest_size, torch.Tensor):
         dest_size = dest_size.shape[0]
@@ -710,13 +699,9 @@ def tensor_to_size(source, dest_size):
 
 
 
-'''
-END OF utils.py
-'''
-
 
 '''
-START IPAdapterPlus.py:
+IPAdapterPlus.py:
 '''
 
 """
@@ -1207,3 +1192,30 @@ def ipadapter_execute(model,
             number += 1
 
     return (model, image)
+
+
+
+def apply_ipadapter(model, ipadapter, image, weight, start_at, end_at, weight_type, attn_mask=None):
+        if weight_type.startswith("style"):
+            weight_type = "style transfer"
+        elif weight_type == "prompt is more important":
+            weight_type = "ease out"
+        else:
+            weight_type = "linear"
+
+        ipa_args = {
+            "image": image,
+            "weight": weight,
+            "start_at": start_at,
+            "end_at": end_at,
+            "attn_mask": attn_mask,
+            "weight_type": weight_type,
+            "insightface": ipadapter['insightface']['model'] if 'insightface' in ipadapter else None,
+        }
+        
+        if 'ipadapter' not in ipadapter:
+            raise Exception("IPAdapter model not present in the pipeline. Please load the models with the IPAdapterUnifiedLoader node.")
+        if 'clipvision' not in ipadapter:
+            raise Exception("CLIPVision model not present in the pipeline. Please load the models with the IPAdapterUnifiedLoader node.")
+
+        return ipadapter_execute(model.clone(), ipadapter['ipadapter']['model'], ipadapter['clipvision']['model'], **ipa_args)

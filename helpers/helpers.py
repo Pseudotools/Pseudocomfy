@@ -1,3 +1,7 @@
+# ==============================================================================
+# This file includes snippets adapted from the built-in nodes of ComfyUI.
+# Original source: https://github.com/comfyanonymous/ComfyUI
+# ==============================================================================
 import base64
 import gzip
 from PIL import Image, ImageOps
@@ -7,8 +11,6 @@ import torch
 
 import node_helpers
 
-from .ipadapter_helpers import ipadapter_execute
-
 
 def clip_text_encode(clip, str):
     tokens = clip.tokenize(str)
@@ -17,7 +19,7 @@ def clip_text_encode(clip, str):
 
 
 
-def create_solid_mask(value, width, height): # from builtin nodes: create a solid mask
+def create_solid_mask(value, width, height): # from builtin nodes: Create Solid Mask
     mask = torch.full((1, height, width), value, dtype=torch.float32, device="cpu")
     return mask
 
@@ -138,7 +140,7 @@ def getMaskFromColor(semantic_base64, color):
 
 
 
-def conditioning_set_mask(conditioning, mask, set_cond_area="default", strength=1.0): # "append" func of the ConditioningSetMask node
+def conditioning_set_mask(conditioning, mask, set_cond_area="default", strength=1.0): # from builtin nodes: "append" func of the ConditioningSetMask node
         if not (0.0 <= strength <= 10.0):
             raise ValueError("Strength must be between 0.0 and 10.0.")
 
@@ -155,32 +157,5 @@ def conditioning_set_mask(conditioning, mask, set_cond_area="default", strength=
 
 
 
-def conditioning_combine(conditioning_1, conditioning_2): # ConditioningCombine node
+def conditioning_combine(conditioning_1, conditioning_2): # from builtin nodes: ConditioningCombine
     return conditioning_1 + conditioning_2
-
-
-
-def apply_ipadapter_cloned(model, ipadapter, image, weight, start_at, end_at, weight_type, attn_mask=None):
-        if weight_type.startswith("style"):
-            weight_type = "style transfer"
-        elif weight_type == "prompt is more important":
-            weight_type = "ease out"
-        else:
-            weight_type = "linear"
-
-        ipa_args = {
-            "image": image,
-            "weight": weight,
-            "start_at": start_at,
-            "end_at": end_at,
-            "attn_mask": attn_mask,
-            "weight_type": weight_type,
-            "insightface": ipadapter['insightface']['model'] if 'insightface' in ipadapter else None,
-        }
-        
-        if 'ipadapter' not in ipadapter:
-            raise Exception("IPAdapter model not present in the pipeline. Please load the models with the IPAdapterUnifiedLoader node.")
-        if 'clipvision' not in ipadapter:
-            raise Exception("CLIPVision model not present in the pipeline. Please load the models with the IPAdapterUnifiedLoader node.")
-
-        return ipadapter_execute(model.clone(), ipadapter['ipadapter']['model'], ipadapter['clipvision']['model'], **ipa_args)

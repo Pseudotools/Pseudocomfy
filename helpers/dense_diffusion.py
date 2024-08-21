@@ -1,4 +1,14 @@
 from __future__ import annotations
+
+# ==============================================================================
+# This file contains code that has been adapted or directly copied from the
+# ComfyUI_densediffusion package by Chenlei Hu ("huchenlei").
+# Original source: https://github.com/huchenlei/ComfyUI_densediffusion
+#
+# This code is used under the terms of the original license, with modifications
+# made to suit the needs of this project.
+# ==============================================================================
+
 import torch
 import math
 import comfy
