@@ -14,7 +14,6 @@ NODE_CLASS_MAPPINGS = {
     "MixedBuiltinCombinerIPAdaper": MixedBuiltinCombinerIPAdaper,
 }
 
-# A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "MakeMaskBatch": "Create Mask Batch",
 
