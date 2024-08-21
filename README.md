@@ -23,6 +23,12 @@
         ```sh
         \ComfyUI_windows_portable>.\python_embeded\python.exe -m pip install diffusers
         ```
+        
+   - **NOT Windows Portable Version:**
+      - if you are using your system Python, virtual environment (or Conda environment), run:
+        ```sh
+        pip install diffusers
+        ```
 These steps will ensure that the **diffusers** module is installed **within the embedded Python environment used by ComfyUI.**
 
 ---
@@ -89,6 +95,6 @@ Clone this repo inside your `custom_nodes` folder by:
    1. **Navigate to:** `C:\path\to\your\ComfyUI_windows_portable\ComfyUI\custom_nodes`
    2. **Open the folder inside a Command Prompt and type:**
       ```sh
-      git clone https://github.com/Pseudotools/sm24-pseudocomfy Pseudorandom
+      git clone https://github.com/Pseudotools/Pseudocomfy.git
       ```
    
