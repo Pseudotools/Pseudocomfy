@@ -8,7 +8,7 @@
 ![Workflow Example Img](readme/img.png)
 
 
-## Spatial-package (input JSON) format example:
+## Snapshot (input JSON) format example:
    ```sh
       {
          "width": 0,

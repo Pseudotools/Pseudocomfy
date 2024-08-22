@@ -9,7 +9,7 @@ import folder_paths
 
 
 CUSTOM_NODES_DIR = Path(folder_paths.folder_names_and_paths["custom_nodes"][0][0])
-SP_DIR = CUSTOM_NODES_DIR.joinpath("Pseudocomfy", "spatial_packages")
+SP_DIR = CUSTOM_NODES_DIR.joinpath("Pseudocomfy", "snapshots")
 
 class LoadJSONAuto:
     @classmethod
