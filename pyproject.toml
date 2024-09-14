@@ -1,0 +1,15 @@
+[project]
+name = "pseudocomfy"
+description = "A package designed to enable multi-regional prompting for architectural rendering, integrated with the Rhino Pseudorandom plugin."
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = ["diffusers"]
+
+[project.urls]
+Repository = "https://github.com/Pseudotools/Pseudocomfy"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "Pseudocomfy"
+Icon = ""
