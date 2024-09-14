@@ -1,7 +1,7 @@
 [project]
 name = "pseudocomfy"
 description = "A package designed to enable multi-regional prompting for architectural rendering, integrated with the Rhino Pseudorandom plugin."
-version = "1.0.0"
+version = "1.0.1"
 license = {file = "LICENSE"}
 dependencies = ["diffusers"]
 
