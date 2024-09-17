@@ -10,6 +10,6 @@ Repository = "https://github.com/Pseudotools/Pseudocomfy"
 #  Used by Comfy Registry https://comfyregistry.org
 
 [tool.comfy]
-PublisherId = ""
+PublisherId = "pseudotools"
 DisplayName = "Pseudocomfy"
-Icon = ""
+Icon = "https://raw.githubusercontent.com/Pseudotools/Pseudocomfy/29a21efdcf42d7918df8ce5b3dd6b9fe00da4dfa/pseudorandom_logo.png"
