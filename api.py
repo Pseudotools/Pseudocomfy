@@ -6,12 +6,16 @@ import folder_paths
 import server
 
 
-def get_first_level_items(folder_path):
+def get_first_level_items(folder_path, to_lowercase=False):
     """Get first-level directories from the given folder."""
     excluded_dirs = {"__pycache__"}
     try:
         dirs = [item for item in os.listdir(folder_path) 
                 if os.path.isdir(os.path.join(folder_path, item)) and item not in excluded_dirs]
+        
+        if to_lowercase:
+            dirs = [item.lower() for item in dirs]
+        
         dirs.sort()
         return dirs
     except FileNotFoundError:
@@ -43,7 +47,7 @@ if _server := getattr(server.PromptServer, "instance", None):
 
         # we only want the first lvl of custom_nodes folder:
         custom_nodes_folder_path = folder_paths.get_folder_paths("custom_nodes")[0] # get_folder_paths returns a list of paths
-        custom_nodes = get_first_level_items(custom_nodes_folder_path)
+        custom_nodes = get_first_level_items(custom_nodes_folder_path, True)
 
         folder_contents["custom_nodes"] = custom_nodes
 
