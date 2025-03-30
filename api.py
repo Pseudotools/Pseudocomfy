@@ -11,7 +11,9 @@ def get_first_level_items(folder_path, to_lowercase=False):
     excluded_dirs = {"__pycache__"}
     try:
         dirs = [item for item in os.listdir(folder_path) 
-                if os.path.isdir(os.path.join(folder_path, item)) and item not in excluded_dirs]
+                if os.path.isdir(os.path.join(folder_path, item)) 
+                and item not in excluded_dirs 
+                and not item.startswith(".")]
         
         if to_lowercase:
             dirs = [item.lower() for item in dirs]
