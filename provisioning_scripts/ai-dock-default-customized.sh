@@ -1,6 +1,6 @@
 #!/bin/bash
-
-echo "Pseudorandom script is running..."
+PROVISIONING_SCRIPT_NAME="ai-dock-default-customized"
+echo "Pseudorandom '$PROVISIONING_SCRIPT_NAME' Provisioning Script is running..."
 
 # This file will be sourced in init.sh
 
@@ -199,7 +199,7 @@ function provisioning_get_models() {
 }
 
 function provisioning_print_header() {
-    printf "\n##############################################\n#                                            #\n#          Provisioning container            #\n#                                            #\n#         This will take some time           #\n#                                            #\n# Your container will be ready on completion #\n#                                            #\n##############################################\n\n"
+    printf "\n##############################################\n#                                            #\n     $PROVISIONING_SCRIPT_NAME      \n#                                            #\n#         This will take some time           #\n#                                            #\n# Your container will be ready on completion #\n#                                            #\n##############################################\n\n"
     if [[ $DISK_GB_ALLOCATED -lt $DISK_GB_REQUIRED ]]; then
         printf "WARNING: Your allocated disk size (%sGB) is below the recommended %sGB - Some models will not be downloaded\n" "$DISK_GB_ALLOCATED" "$DISK_GB_REQUIRED"
     fi
