@@ -24,13 +24,13 @@ NODES=(
     "https://github.com/ltdrdata/ComfyUI-Manager"
     # "https://github.com/cubiq/ComfyUI_essentials"
     "https://github.com/Pseudotools/Pseudocomfy"
-    "https://github.com/cubiq/ComfyUI_IPAdapter_plus"
+    "https://github.com/Pseudotools/ComfyUI_IPAdapter_plus"
 )
 
 CHECKPOINT_MODELS=(
-    "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"
-    "https://civitai.com/api/download/models/143740?type=Model&format=SafeTensor&size=pruned&fp=fp16"
-    "https://civitai.com/api/download/models/329420?type=Model&format=SafeTensor&size=pruned&fp=fp16"
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/Juggernaut_X_RunDiffusion_Hyper.safetensors"
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/albedobaseXL_v21.safetensors"    
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/sd_xl_base_1.0.safetensors"
 )
 
 UNET_MODELS=(
@@ -50,18 +50,16 @@ ESRGAN_MODELS=(
 )
 
 CONTROLNET_MODELS=(
-    "https://huggingface.co/lllyasviel/sd-controlnet-depth/resolve/main/diffusion_pytorch_model.safetensors?download"
-    "https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-depth-rank128.safetensors?download"
-    "https://huggingface.co/lllyasviel/sd_control_collection/resolve/main/diffusers_xl_depth_mid.safetensors?download"
-    "https://huggingface.co/webui/ControlNet-modules-safetensors/resolve/main/control_depth-fp16.safetensors"
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/controlnet/control-lora-depth-rank128.safetensors"
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/controlnet/diffusion_pytorch_model.safetensors"
 )
 
 
 ### KSTEINFE ADDED VARS AND FUNCTIONS ###
 
 IP_ADAPTER_MODELS=(
-    "https://huggingface.co/h94/IP-Adapter/resolve/main/models/ip-adapter-plus_sd15.safetensors"
-    "https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter-plus_sdxl_vit-h.safetensors"
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/ipadapter/ip-adapter-plus_sd15.safetensors"
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/ipadapter/ip-adapter-plus_sdxl_vit-h.safetensors"
 )
 
 function provisioning_get_ipadapter() {
@@ -71,8 +69,8 @@ function provisioning_get_ipadapter() {
 }
 
 CLIP_VISION_MODELS=(
-    "https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors"
-    "https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/image_encoder/model.safetensors"
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/clip_vision/CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors"
 )
 CLIP_VISION_FILENAMES=(
     "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
