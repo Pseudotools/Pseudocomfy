@@ -33,7 +33,7 @@ IP_ADAPTER_MODELS=()
 
 function provisioning_get_ipadapter() {
     provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/ipadapter" \
+        "${STORAGE_PATH}/models/ipadapter" \
         "${IP_ADAPTER_MODELS[@]}"
 }
 
@@ -41,7 +41,7 @@ CLIP_VISION_MODELS=()
 CLIP_VISION_FILENAMES=()
 
 function provisioning_get_clip_vision() {
-    dir="${WORKSPACE}/storage/stable_diffusion/models/clip_vision"
+    dir="${STORAGE_PATH}/models/clip_vision"
     mkdir -p "$dir"
     
     for i in "${!CLIP_VISION_MODELS[@]}"; do
@@ -68,22 +68,22 @@ function provisioning_start() {
     provisioning_get_nodes
     provisioning_get_pip_packages
     provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/ckpt" \
+        "${STORAGE_PATH}/models/ckpt" \
         "${CHECKPOINT_MODELS[@]}"
     provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/unet" \
+        "${STORAGE_PATH}/models/unet" \
         "${UNET_MODELS[@]}"
     provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/lora" \
+        "${STORAGE_PATH}/models/lora" \
         "${LORA_MODELS[@]}"
     provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/controlnet" \
+        "${STORAGE_PATH}/models/controlnet" \
         "${CONTROLNET_MODELS[@]}"
     provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/vae" \
+        "${STORAGE_PATH}/models/vae" \
         "${VAE_MODELS[@]}"
     provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/esrgan" \
+        "${STORAGE_PATH}/models/esrgan" \
         "${ESRGAN_MODELS[@]}"
     
     ## KSTEINFE ADDED
