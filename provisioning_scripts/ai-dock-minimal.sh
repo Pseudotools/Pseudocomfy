@@ -3,58 +3,29 @@ PROVISIONING_SCRIPT_NAME="ai-dock-minimal"
 echo "Pseudorandom '$PROVISIONING_SCRIPT_NAME' Provisioning Script is running..."
 
 APT_PACKAGES=()
-
 PIP_PACKAGES=(
     "diffusers"
 )
-
 NODES=(
     "https://github.com/ltdrdata/ComfyUI-Manager"
     "https://github.com/Pseudotools/Pseudocomfy"
 )
-
 CHECKPOINT_MODELS=(
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/albedobaseXL_v21.safetensors"
 )
-
 UNET_MODELS=()
-
 LORA_MODELS=()
-
 VAE_MODELS=()
-
 ESRGAN_MODELS=()
-
 CONTROLNET_MODELS=(
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/controlnet/control-lora-depth-rank128.safetensors"
 )
-
 IP_ADAPTER_MODELS=()
-
-function provisioning_get_ipadapter() {
-    provisioning_get_models \
-        "${STORAGE_PATH}/models/ipadapter" \
-        "${IP_ADAPTER_MODELS[@]}"
-}
-
 CLIP_VISION_MODELS=()
 CLIP_VISION_FILENAMES=()
 
-function provisioning_get_clip_vision() {
-    dir="${STORAGE_PATH}/models/clip_vision"
-    mkdir -p "$dir"
-    
-    for i in "${!CLIP_VISION_MODELS[@]}"; do
-        url="${CLIP_VISION_MODELS[i]}"
-        filename="${CLIP_VISION_FILENAMES[i]}"
-        printf "Downloading: %s\n" "${url}"
-        provisioning_download "${url}" "${dir}/${filename}"
-        printf "\n"
-    done
-}
-
-
 ### DO NOT EDIT BELOW HERE UNLESS YOU KNOW WHAT YOU ARE DOING ###
+
 
 function provisioning_start() {
     if [[ ! -d /opt/environments/python ]]; then 
@@ -93,6 +64,66 @@ function provisioning_start() {
     
     provisioning_print_end
 }
+
+# ksteinfe
+function provisioning_get_ipadapter() {
+    provisioning_get_models \
+        "${STORAGE_PATH}/models/ipadapter" \
+        "${IP_ADAPTER_MODELS[@]}"
+}
+
+
+
+# ksteinfe
+function provisioning_get_clip_vision() {
+    dir="${STORAGE_PATH}/models/clip_vision"
+    mkdir -p "$dir"
+    
+    for i in "${!CLIP_VISION_MODELS[@]}"; do
+        url="${CLIP_VISION_MODELS[i]}"
+        filename="${CLIP_VISION_FILENAMES[i]}"
+        printf "Downloading: %s\n" "${url}"
+        provisioning_download "${url}" "${dir}/${filename}"
+        printf "\n"
+    done
+}
+
+
+# ksteinfe
+function provisioning_create_extra_model_paths_yaml() {
+    local model_root="${STORAGE_PATH}/models"
+    local config_file="${WORKSPACE}/ComfyUI/extra_model_paths.yaml"
+
+    # Define all the model subfolders you want
+    local folders=(
+        checkpoints
+        clip
+        clip_vision
+        controlnet
+        ipadapter
+        loras
+    )
+
+    # Ensure each directory exists
+    for folder in "${folders[@]}"; do
+        mkdir -p "${model_root}/${folder}"
+    done
+
+    # Build YAML content into a variable
+    local yaml_content="custom_models:"
+    for folder in "${folders[@]}"; do
+        yaml_content+="
+  ${folder}: ${model_root}/${folder}"
+    done
+
+    # Write it to the file
+    echo "$yaml_content" > "$config_file"
+
+    echo "[✓] Created model directories and wrote $config_file"
+}
+
+
+
 
 function pip_install() {
     if [[ -z $MAMBA_BASE ]]; then
