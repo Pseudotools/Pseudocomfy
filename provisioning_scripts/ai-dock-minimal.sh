@@ -11,7 +11,7 @@ NODES=(
     "https://github.com/Pseudotools/Pseudocomfy"
 )
 CHECKPOINT_MODELS=(
-    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/albedobaseXL_v21.safetensors"
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/sd_xl_base_1.0.safetensors"
 )
 UNET_MODELS=()
 LORA_MODELS=()
@@ -20,9 +20,17 @@ ESRGAN_MODELS=()
 CONTROLNET_MODELS=(
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/controlnet/control-lora-depth-rank128.safetensors"
 )
-IP_ADAPTER_MODELS=()
-CLIP_VISION_MODELS=()
-CLIP_VISION_FILENAMES=()
+IP_ADAPTER_MODELS=(
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/ipadapter/ip-adapter-plus_sdxl_vit-h.safetensors"
+)
+CLIP_VISION_MODELS=(
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/clip_vision/CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors"
+)
+CLIP_VISION_FILENAMES=(
+    "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
+    "CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors"
+)
 
 ### DO NOT EDIT BELOW HERE UNLESS YOU KNOW WHAT YOU ARE DOING ###
 
