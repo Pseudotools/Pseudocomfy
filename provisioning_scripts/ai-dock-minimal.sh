@@ -33,19 +33,22 @@ function provisioning_start() {
     fi
     source /opt/ai-dock/etc/environment.sh
     source /opt/ai-dock/bin/venv-set.sh comfyui
-
+    
     provisioning_print_header
     provisioning_get_apt_packages
     provisioning_get_nodes
     provisioning_get_pip_packages
+
+    provisioning_create_extra_model_paths_yaml
+    
     provisioning_get_models \
-        "${STORAGE_PATH}/models/ckpt" \
+        "${STORAGE_PATH}/models/checkpoints" \
         "${CHECKPOINT_MODELS[@]}"
     provisioning_get_models \
         "${STORAGE_PATH}/models/unet" \
         "${UNET_MODELS[@]}"
     provisioning_get_models \
-        "${STORAGE_PATH}/models/lora" \
+        "${STORAGE_PATH}/models/loras" \
         "${LORA_MODELS[@]}"
     provisioning_get_models \
         "${STORAGE_PATH}/models/controlnet" \
