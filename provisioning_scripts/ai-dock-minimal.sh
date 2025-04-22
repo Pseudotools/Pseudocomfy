@@ -9,6 +9,7 @@ PIP_PACKAGES=(
 NODES=(
     "https://github.com/ltdrdata/ComfyUI-Manager"
     "https://github.com/Pseudotools/Pseudocomfy"
+    "https://github.com/Pseudotools/ComfyUI_IPAdapter_plus"
 )
 CHECKPOINT_MODELS=(
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/sd_xl_base_1.0.safetensors"
