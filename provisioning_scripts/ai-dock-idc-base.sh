@@ -3,48 +3,32 @@ PROVISIONING_SCRIPT_NAME="ai-dock-idc-base"
 echo "Pseudorandom '$PROVISIONING_SCRIPT_NAME' Provisioning Script is running..."
 
 APT_PACKAGES=()
-
 PIP_PACKAGES=(
     "diffusers"
 )
-
 NODES=(
     "https://github.com/ltdrdata/ComfyUI-Manager"
     "https://github.com/Pseudotools/Pseudocomfy"
     "https://github.com/Pseudotools/ComfyUI_IPAdapter_plus"
 )
-
 CHECKPOINT_MODELS=(
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/Juggernaut_X_RunDiffusion_Hyper.safetensors"
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/albedobaseXL_v21.safetensors"    
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/sd_xl_base_1.0.safetensors"
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/sd_xl_refiner_1.0.safetensors"
 )
-
 UNET_MODELS=()
-
 LORA_MODELS=()
-
 VAE_MODELS=()
-
 ESRGAN_MODELS=()
-
 CONTROLNET_MODELS=(
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/controlnet/control-lora-depth-rank128.safetensors"
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/controlnet/diffusion_pytorch_model.safetensors"
 )
-
 IP_ADAPTER_MODELS=(
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/ipadapter/ip-adapter-plus_sd15.safetensors"
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/ipadapter/ip-adapter-plus_sdxl_vit-h.safetensors"
 )
-
-function provisioning_get_ipadapter() {
-    provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/ipadapter" \
-        "${IP_ADAPTER_MODELS[@]}"
-}
-
 CLIP_VISION_MODELS=(
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/clip_vision/CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors"
@@ -54,8 +38,63 @@ CLIP_VISION_FILENAMES=(
     "CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors"
 )
 
+
+### DO NOT EDIT BELOW HERE UNLESS YOU KNOW WHAT YOU ARE DOING ###
+
+
+function provisioning_start() {
+    if [[ ! -d /opt/environments/python ]]; then 
+        export MAMBA_BASE=true
+    fi
+    source /opt/ai-dock/etc/environment.sh
+    source /opt/ai-dock/bin/venv-set.sh comfyui
+    
+    provisioning_print_header
+    provisioning_get_apt_packages
+    provisioning_get_nodes
+    provisioning_get_pip_packages
+
+    provisioning_create_extra_model_paths_yaml
+    
+    provisioning_get_models \
+        "${STORAGE_PATH}/models/checkpoints" \
+        "${CHECKPOINT_MODELS[@]}"
+    provisioning_get_models \
+        "${STORAGE_PATH}/models/unet" \
+        "${UNET_MODELS[@]}"
+    provisioning_get_models \
+        "${STORAGE_PATH}/models/loras" \
+        "${LORA_MODELS[@]}"
+    provisioning_get_models \
+        "${STORAGE_PATH}/models/controlnet" \
+        "${CONTROLNET_MODELS[@]}"
+    provisioning_get_models \
+        "${STORAGE_PATH}/models/vae" \
+        "${VAE_MODELS[@]}"
+    provisioning_get_models \
+        "${STORAGE_PATH}/models/esrgan" \
+        "${ESRGAN_MODELS[@]}"
+    
+    ## KSTEINFE ADDED
+    provisioning_get_ipadapter
+    provisioning_get_clip_vision
+    ## 
+    
+    provisioning_print_end
+}
+
+# ksteinfe
+function provisioning_get_ipadapter() {
+    provisioning_get_models \
+        "${STORAGE_PATH}/models/ipadapter" \
+        "${IP_ADAPTER_MODELS[@]}"
+}
+
+
+
+# ksteinfe
 function provisioning_get_clip_vision() {
-    dir="${WORKSPACE}/storage/stable_diffusion/models/clip_vision"
+    dir="${STORAGE_PATH}/models/clip_vision"
     mkdir -p "$dir"
     
     for i in "${!CLIP_VISION_MODELS[@]}"; do
@@ -68,45 +107,41 @@ function provisioning_get_clip_vision() {
 }
 
 
-### DO NOT EDIT BELOW HERE UNLESS YOU KNOW WHAT YOU ARE DOING ###
+# ksteinfe
+function provisioning_create_extra_model_paths_yaml() {
+    local model_root="${STORAGE_PATH}/models"
+    local config_file="${WORKSPACE}/ComfyUI/extra_model_paths.yaml"
 
-function provisioning_start() {
-    if [[ ! -d /opt/environments/python ]]; then 
-        export MAMBA_BASE=true
-    fi
-    source /opt/ai-dock/etc/environment.sh
-    source /opt/ai-dock/bin/venv-set.sh comfyui
+    # Define all the model subfolders you want
+    local folders=(
+        checkpoints
+        clip
+        clip_vision
+        controlnet
+        ipadapter
+        loras
+    )
 
-    provisioning_print_header
-    provisioning_get_apt_packages
-    provisioning_get_nodes
-    provisioning_get_pip_packages
-    provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/ckpt" \
-        "${CHECKPOINT_MODELS[@]}"
-    provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/unet" \
-        "${UNET_MODELS[@]}"
-    provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/lora" \
-        "${LORA_MODELS[@]}"
-    provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/controlnet" \
-        "${CONTROLNET_MODELS[@]}"
-    provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/vae" \
-        "${VAE_MODELS[@]}"
-    provisioning_get_models \
-        "${WORKSPACE}/storage/stable_diffusion/models/esrgan" \
-        "${ESRGAN_MODELS[@]}"
-    
-    ## KSTEINFE ADDED
-    provisioning_get_ipadapter
-    provisioning_get_clip_vision
-    ## 
-    
-    provisioning_print_end
+    # Ensure each directory exists
+    for folder in "${folders[@]}"; do
+        mkdir -p "${model_root}/${folder}"
+    done
+
+    # Build YAML content into a variable
+    local yaml_content="custom_models:"
+    for folder in "${folders[@]}"; do
+        yaml_content+="
+  ${folder}: ${model_root}/${folder}"
+    done
+
+    # Write it to the file
+    echo "$yaml_content" > "$config_file"
+
+    echo "[✓] Created model directories and wrote $config_file"
 }
+
+
+
 
 function pip_install() {
     if [[ -z $MAMBA_BASE ]]; then
