@@ -18,6 +18,7 @@ CHECKPOINT_MODELS=(
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/Juggernaut_X_RunDiffusion_Hyper.safetensors"
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/albedobaseXL_v21.safetensors"    
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/sd_xl_base_1.0.safetensors"
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/sd_xl_refiner_1.0.safetensors"
 )
 
 UNET_MODELS=()
