@@ -1,147 +1,71 @@
-from .helpers.helpers import *
-from .helpers.dense_diffusion import combine, apply
+from .helpers.dense_diffusion import dd_combine, dd_apply
 from .helpers.ipadapter import apply_ipadapter
+from .helpers.helpers import *
 
-
-class ProcessJSON:
+class ApplyDenseDiffusion:
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
-                "json_data": ("DICT", ),
-                "scale_img_by": ("FLOAT", {"default": 2.0, "min": 1.0, "max": 8.0, "step": 0.5})
-            },
-        }
-    
-    RETURN_TYPES = ("STRING_LIST",
-                    "IMAGE_LIST",
-                    "MASK_LIST",
-                    "STRING",
-                    "STRING",
-                    "STRING",
-                    "INT",
-                    "INT",
-                    "IMAGE",
-                    "IMAGE",)
-    
-    RETURN_NAMES = ("object_txts",
-                    "object_imgs",
-                    "masks",
-                    "pmt_scene",
-                    "pmt_style",
-                    "pmt_negative",
-                    "width",
-                    "height",
-                    "img_depth",
-                    "img_edge",)
-
-    FUNCTION = "process_json"
-
-    CATEGORY = "Pseudocomfy/Processors"
-
-    def process_json(self, json_data, scale_img_by):
-        map_semantic = json_data['map_semantic']
-        object_txts = [entry['pmt_txt'] for entry in map_semantic]
-        object_imgs_base64 = [entry['pmt_img'] for entry in map_semantic]
-        
-        masks_base64 = [entry['mask'] for entry in map_semantic]
-
-        if len(object_txts) != len(masks_base64):
-            raise ValueError("Number of prompts and masks must be equal.")        
-
-        
-        # base prompts (pos/neg):
-        pmts_environment = json_data['pmts_environment']
-        pmt_scene = pmts_environment['pmt_scene']
-        pmt_style = pmts_environment['pmt_style']
-        pmt_negative = pmts_environment['pmt_negative']
-
-        width = make_multiple_of_64(json_data['width'])
-        height = make_multiple_of_64(json_data['height'])
-
-
-        # depth image:
-        img_depth = json_data['img_depth']
-        depth_tensor = decode_and_scale_depth(img_depth, scale_img_by, width, height)
-
-        masks = []
-        for img in masks_base64:
-            scaled_mask = decode_and_scale_mask(img, scale_img_by, width, height)
-            masks.append(scaled_mask)
-
-        object_imgs = []
-        for img in object_imgs_base64:
-            if img is not None:
-                img = decode_image_prompt(img)
-            
-            object_imgs.append(img)
-
-
-        width = int(width * scale_img_by)
-        height = int(height * scale_img_by) # wrapping in int cuz that's the format for empty mask and latent
-        return (
-            object_txts,
-            object_imgs,
-            masks,
-            pmt_scene,
-            pmt_style,
-            pmt_negative,
-            width,
-            height,
-            depth_tensor,
-            [],
-        )
-
-
-
-class Combiner:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "model": ("MODEL",),
-                "clip": ("CLIP",),
-                "object_txts": ("STRING_LIST",),
-                "masks": ("MASK_LIST",),
-                "pmt_scene": ("STRING", {"forceInput": True}),
-                "pmt_style": ("STRING", {"forceInput": True}),
-                "pmt_negative": ("STRING", {"forceInput": True}),
+                "model": ("MODEL", {"forceInput": True}),
+                "clip": ("CLIP", {"forceInput": True}),
+                "mat_txts": ("STRING", {"forceInput": True}),
+                "mat_msks": ("IMAGE", {"forceInput": True}),
+                "env_scene": ("STRING", {"forceInput": True}),
+                "env_style": ("STRING", {"forceInput": True}),
+                "env_negative": ("STRING", {"forceInput": True}),
                 "width": ("INT", {"forceInput": True}),
-                "height": ("INT", {"forceInput": True})
+                "height": ("INT", {"forceInput": True}),
             },
         }
     
-    RETURN_TYPES = ("MODEL", "CONDITIONING", "CONDITIONING")
+    INPUT_IS_LIST = True # All inputs of ``type`` will become ``list[type]``, regardless of how many items are passed in.
 
-    RETURN_NAMES = ("model", "positive", "negative")
+    RETURN_TYPES = ("MODEL", "CONDITIONING", "CONDITIONING",)
+    RETURN_NAMES = ("model", "positive", "negative",)
+    OUTPUT_IS_LIST = (False, False, False,)
 
     FUNCTION = "combiner"
 
     CATEGORY = "Pseudocomfy/Processors"
 
-    def combiner(self, model, clip, object_txts, masks, pmt_scene, pmt_style, pmt_negative, width, height):
-        styled_object_prompts = [prompt + ", " + pmt_style for prompt in object_txts] # adding styles to each object prompt
+    def combiner(self, model, clip, mat_txts, mat_msks, env_scene, env_style, env_negative, width, height):
+        # if model or clip is a list, use the first element
+        if isinstance(model, list) and len(model)>0: model = model[0]
+        if isinstance(clip, list) and len(clip)>0: clip = clip[0]
+
+        # If env_x are a list, concatenate into a single string
+        if isinstance(env_scene, list): env_scene = ", ".join(env_scene)
+        if isinstance(env_style, list): env_style = ", ".join(env_style)
+        if isinstance(env_negative, list): env_negative = ", ".join(env_negative)
+
+        # if width or height are a list, use the first element
+        if isinstance(width, list) and len(width)>0: width = width[0]
+        if isinstance(height, list) and len(height)>0: height = height[0]
+        
+
+        styled_material_prompts = [prompt + ", " + env_style for prompt in mat_txts] # adding styles to each object prompt
         # turning the list of strings into a list of conditionings:
-        obj_pmts_cond = [clip_text_encode(clip, prompt) for prompt in styled_object_prompts] # appending as a list - format of comfy when returning CONDITIONING type
+        mat_pmts_cond = [clip_text_encode(clip, prompt) for prompt in styled_material_prompts] # appending as a list - format of comfy when returning CONDITIONING type
 
-        combined_pmt_list = [pmt_scene, pmt_style] + object_txts # list containing all scene, style and object prompts 
-        pmt_positive = "; ".join(combined_pmt_list) # combine all prompts into a single string
+        combined_txt_list = [env_scene, env_style] + mat_txts # list containing all scene, style and object prompts 
+        env_positive = "; ".join(combined_txt_list) # combine all prompts into a single string
 
-        positive_prompt_cond = clip_text_encode(clip, pmt_positive) # wrapping in a list - format of comfy when returning CONDITIONING type
-        negative_prompt_cond = clip_text_encode(clip, pmt_negative)
+        positive_prompt_cond = clip_text_encode(clip, env_positive) # wrapping in a list - format of comfy when returning CONDITIONING type
+        negative_prompt_cond = clip_text_encode(clip, env_negative)
 
         empty_mask = create_solid_mask(1.0, width, height)
-        model = combine(model, positive_prompt_cond, empty_mask, 1.0) # first combining with dense diffusion
+        model = dd_combine(model, positive_prompt_cond, empty_mask, 1.0) # first combining with dense diffusion
 
-        for i in range(len(obj_pmts_cond)):
-            model = combine(model, obj_pmts_cond[i], masks[i], 1.0)
+        for i in range(len(mat_pmts_cond)):
+            model = dd_combine(model, mat_pmts_cond[i], mat_msks[i], 1.0)
 
-        work_model, cond = apply(model)
+        work_model, cond = dd_apply(model)
 
         return (work_model, cond, negative_prompt_cond)
     
 
-class MixedBuiltinCombinerIPAdaper:
+class ApplyIPAdaper:
     @classmethod
     def INPUT_TYPES(s):
         return {

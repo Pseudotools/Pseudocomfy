@@ -3,24 +3,43 @@ from .processors import *
 from .utils import *
 from . import api
 
+
+# =============================================================================
+# === GLOBAL ===
+# =============================================================================
+
+NODE_CLASS_MAPPINGS = {}
+NODE_DISPLAY_NAME_MAPPINGS = {}
+WEB_DIRECTORY = "./web"
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
+
+
+# =============================================================================
+# === REGISTRATION ===
+# =============================================================================
+
 NODE_CLASS_MAPPINGS = {
-    "MakeMaskBatch": MakeMaskBatch,
+    #"MakeMaskBatch": MakeMaskBatch,
 
-    "LoadJSONAuto": LoadJSONAuto,
-    "LoadJSONFromFolder": LoadJSONFromFolder,
+    #"LoadJSONAuto": LoadJSONAuto,
+    "LoadModelSnapshot": LoadModelSnapshot,
+    "UnpackModelSnapshot": UnpackModelSnapshot,
 
-    "ProcessJSON": ProcessJSON,
-    "Combiner": Combiner,
-    "MixedBuiltinCombinerIPAdaper": MixedBuiltinCombinerIPAdaper,
+    "ApplyDenseDiffusion": ApplyDenseDiffusion,
+    "ApplyIPAdaper": ApplyIPAdaper,
+
+    "PreviewEnvironmentalPrompts": PreviewEnvironmentalPrompts,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "MakeMaskBatch": "Create Mask Batch",
+    #"MakeMaskBatch": "Batch Masks",
 
-    "LoadJSONAuto": "Load JSON (Auto)",
-    "LoadJSONFromFolder": "Load JSON (From Folder)",
+    #"LoadJSONAuto": "Load JSON (Auto)",
+    "LoadModelSnapshot": "Load Model Snapshot",
+    "UnpackModelSnapshot": "Unpack Model Snapshot",
 
-    "ProcessJSON": "Process JSON",
-    "Combiner": "Combiner",
-    "MixedBuiltinCombinerIPAdaper": "Mixed Builtin Combiner (with IPAdaper)",
+    "ApplyDenseDiffusion": "Apply Dense Diffusion",
+    "ApplyIPAdaper": "Apply IPAdaper",
+
+    "PreviewEnvironmentalPrompts": "Preview Environmental Prompts",    
 }

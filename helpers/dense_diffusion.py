@@ -194,7 +194,7 @@ class OmostDenseDiffusionCrossAttention(torch.nn.Module):
 
 
 
-def combine(model: ModelPatcher, conditioning: ComfyUIConditioning, mask: torch.Tensor, strength: float,) -> tuple[ModelPatcher]:
+def dd_combine(model: ModelPatcher, conditioning: ComfyUIConditioning, mask: torch.Tensor, strength: float,) -> tuple[ModelPatcher]:
     work_model: ModelPatcher = model.clone()
     work_model.model_options["transformer_options"].setdefault(
         "dense_diffusion_cond", []
@@ -215,7 +215,7 @@ def combine(model: ModelPatcher, conditioning: ComfyUIConditioning, mask: torch.
 
 
 
-def apply(model: ModelPatcher) -> tuple[ModelPatcher]:
+def dd_apply(model: ModelPatcher) -> tuple[ModelPatcher]:
         work_model: ModelPatcher = model.clone()
         sd_version: StableDiffusionVersion = get_sd_version(work_model)
         input_ids, output_ids, middle_ids = sd_version.transformer_ids

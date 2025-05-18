@@ -47,7 +47,6 @@ class Attn2Replace:
 
         return out.to(dtype=dtype)
 
-
 def ipadapter_attention(out, q, k, v, extra_options, module_key='', ipadapter=None, weight=1.0, cond=None, cond_alt=None, uncond=None, weight_type="linear", mask=None, sigma_start=0.0, sigma_end=1.0, unfold_batch=False, embeds_scaling='V only', **kwargs):
     dtype = q.dtype
     cond_or_uncond = extra_options["cond_or_uncond"]
@@ -230,7 +229,6 @@ def ipadapter_attention(out, q, k, v, extra_options, module_key='', ipadapter=No
     return out_ip.to(dtype=dtype)
 
 
-
 '''
 image_proj_models.py:
 '''
@@ -245,8 +243,6 @@ def FeedForward(dim, mult=4):
         nn.Linear(inner_dim, dim, bias=False),
     )
 
-
-
 def reshape_tensor(x, heads):
     bs, length, width = x.shape
     # (bs, length, width) --> (bs, length, n_heads, dim_per_head)
@@ -256,8 +252,6 @@ def reshape_tensor(x, heads):
     # (bs, n_heads, length, dim_per_head) --> (bs*n_heads, length, dim_per_head)
     x = x.reshape(bs, heads, length, -1)
     return x
-
-
 
 class PerceiverAttention(nn.Module):
     def __init__(self, *, dim, dim_head=64, heads=8):
@@ -304,8 +298,6 @@ class PerceiverAttention(nn.Module):
         out = out.permute(0, 2, 1, 3).reshape(b, l, -1)
 
         return self.to_out(out)
-
-
 
 class Resampler(nn.Module):
     def __init__(
@@ -375,9 +367,6 @@ class Resampler(nn.Module):
         latents = self.proj_out(latents)
         return self.norm_out(latents)
 
-
-
-
 def masked_mean(t, *, dim, mask=None):
     if mask is None:
         return t.mean(dim=dim)
@@ -387,8 +376,6 @@ def masked_mean(t, *, dim, mask=None):
     masked_t = t.masked_fill(~mask, 0.0)
 
     return masked_t.sum(dim=dim) / denom.clamp(min=1e-5)
-
-
 
 class FacePerceiverResampler(nn.Module):
     def __init__(
@@ -425,7 +412,6 @@ class FacePerceiverResampler(nn.Module):
             latents = ff(latents) + latents
         latents = self.proj_out(latents)
         return self.norm_out(latents)
-    
 
 class MLPProjModel(nn.Module):
     def __init__(self, cross_attention_dim=1024, clip_embeddings_dim=1024):
@@ -441,7 +427,6 @@ class MLPProjModel(nn.Module):
     def forward(self, image_embeds):
         clip_extra_context_tokens = self.proj(image_embeds)
         return clip_extra_context_tokens
-
 
 class MLPProjModelFaceId(nn.Module):
     def __init__(self, cross_attention_dim=768, id_embeddings_dim=512, num_tokens=4):
@@ -462,7 +447,6 @@ class MLPProjModelFaceId(nn.Module):
         x = x.reshape(-1, self.num_tokens, self.cross_attention_dim)
         x = self.norm(x)
         return x
-
 
 class ProjModelFaceIdPlus(nn.Module):
     def __init__(self, cross_attention_dim=768, id_embeddings_dim=512, clip_embeddings_dim=1280, num_tokens=4):
@@ -496,8 +480,6 @@ class ProjModelFaceIdPlus(nn.Module):
         if shortcut:
             out = x + scale * out
         return out
-    
-
 
 class ImageProjModel(nn.Module):
     def __init__(self, cross_attention_dim=1024, clip_embeddings_dim=1024, clip_extra_context_tokens=4):
@@ -513,7 +495,6 @@ class ImageProjModel(nn.Module):
         x = self.proj(embeds).reshape(-1, self.clip_extra_context_tokens, self.cross_attention_dim)
         x = self.norm(x)
         return x
-
 
 
 '''
@@ -532,9 +513,6 @@ def split_tiles(embeds, num_split):
     x_split = torch.stack(out, dim=0)
     
     return x_split
-
-
-
 
 def merge_hiddenstates(x, tiles):
     chunk_size = tiles*tiles
@@ -570,10 +548,6 @@ def merge_hiddenstates(x, tiles):
 
     return out
 
-
-
-
-
 def merge_embeddings(x, tiles): # TODO: this needs so much testing that I don't even
     chunk_size = tiles*tiles
     x = x.split(chunk_size)
@@ -598,10 +572,6 @@ def merge_embeddings(x, tiles): # TODO: this needs so much testing that I don't 
     out = torch.cat(out, dim=0)
     
     return out
-
-
-
-
 
 def encode_image_masked(clip_vision, image, mask=None, batch_size=0, tiles=1, ratio=1.0, clipvision_size=224):
     # full image embeds
@@ -643,10 +613,6 @@ def encode_image_masked(clip_vision, image, mask=None, batch_size=0, tiles=1, ra
 
     return embeds
 
-
-
-
-
 def encode_image_masked_(clip_vision, image, mask=None, batch_size=0, clipvision_size=224):
     model_management.load_model_gpu(clip_vision.patcher)
     outputs = Output()
@@ -682,8 +648,6 @@ def encode_image_masked_(clip_vision, image, mask=None, batch_size=0, clipvision
 
     return outputs
 
-
-
 def tensor_to_size(source, dest_size):
     if isinstance(dest_size, torch.Tensor):
         dest_size = dest_size.shape[0]
@@ -696,9 +660,6 @@ def tensor_to_size(source, dest_size):
         source = source[:dest_size]
 
     return source
-
-
-
 
 '''
 IPAdapterPlus.py:
@@ -835,8 +796,6 @@ class IPAdapter(nn.Module):
         #embeds = self.image_proj_model(face_embed, clip_embed, scale=s_scale, shortcut=shortcut)
         return embeds
 
-
-
 class To_KV(nn.Module):
     def __init__(self, state_dict, encoder_hid_proj=None, weight_kolors=1.0):
         super().__init__()
@@ -856,9 +815,6 @@ class To_KV(nn.Module):
                 self.to_kvs[key.replace(".weight", "").replace(".", "_")] = nn.Linear(value.shape[1], value.shape[0], bias=False)
                 self.to_kvs[key.replace(".weight", "").replace(".", "_")].weight.data = value
 
-
-
-
 def set_model_patch_replace(model, patch_kwargs, key):
     to = model.model_options["transformer_options"].copy()
     if "patches_replace" not in to:
@@ -876,9 +832,6 @@ def set_model_patch_replace(model, patch_kwargs, key):
         model.model_options["transformer_options"] = to
     else:
         to["patches_replace"]["attn2"][key].add(ipadapter_attention, **patch_kwargs)
-
-
-
 
 def ipadapter_execute(model,
                       ipadapter,
@@ -1192,8 +1145,6 @@ def ipadapter_execute(model,
             number += 1
 
     return (model, image)
-
-
 
 def apply_ipadapter(model, ipadapter, image, weight, start_at, end_at, weight_type, attn_mask=None):
         if weight_type.startswith("style"):
