@@ -1,6 +1,8 @@
+import node_helpers
+
 from .helpers.dense_diffusion import dd_combine, dd_apply
 from .helpers.ipadapter import apply_ipadapter
-from .helpers.helpers import *
+from .helpers.imgutil import create_solid_mask
 
 class ApplyDenseDiffusion:
     @classmethod
@@ -44,6 +46,7 @@ class ApplyDenseDiffusion:
         # if width or height are a list, use the first element
         if isinstance(width, list) and len(width)>0: width = width[0]
         if isinstance(height, list) and len(height)>0: height = height[0]
+        print("[pseudocomfy] ApplyDenseDiffusion\t\t width, height: ", width, height)
 
 
         styled_material_prompts = [prompt + ", " + env_style for prompt in mat_txts] # adding styles to each object prompt
@@ -131,3 +134,35 @@ class ApplyIPAdaper:
 
         
         return (model, positive_prompt_cond, negative_prompt_cond)
+    
+
+# ==============================================================================
+# utility functions
+# ==============================================================================
+
+
+def clip_text_encode(clip, str):
+    tokens = clip.tokenize(str)
+    cond, pooled = clip.encode_from_tokens(tokens, return_pooled=True)
+    return [[cond, {"pooled_output": pooled}]]
+
+
+
+def conditioning_set_mask(conditioning, mask, set_cond_area="default", strength=1.0): # from builtin nodes: "append" func of the ConditioningSetMask node
+        if not (0.0 <= strength <= 10.0):
+            raise ValueError("Strength must be between 0.0 and 10.0.")
+
+        set_area_to_bounds = False
+        if set_cond_area != "default":
+            set_area_to_bounds = True
+        if len(mask.shape) < 3:
+            mask = mask.unsqueeze(0)
+
+        cond = node_helpers.conditioning_set_values(conditioning, {"mask": mask,
+                                                                "set_area_to_bounds": set_area_to_bounds,
+                                                                "mask_strength": strength})
+        return cond
+
+
+def conditioning_combine(conditioning_1, conditioning_2): # from builtin nodes: ConditioningCombine
+    return conditioning_1 + conditioning_2

@@ -4,10 +4,17 @@ import json
 import time
 import requests
 import urllib.parse
+import base64
+from PIL import Image, ImageOps
+import numpy as np
+import io
+import torch
+import gzip
 
 import folder_paths
+import node_helpers
 
-from .helpers.helpers import *
+from .helpers.imgutil import make_multiple_of_64, scale_image
 
 
 CUSTOM_NODES_DIR = Path(folder_paths.folder_names_and_paths["custom_nodes"][0][0])
@@ -140,29 +147,44 @@ class UnpackModelSnapshot:
 
         width = make_multiple_of_64(json_data['width'])
         height = make_multiple_of_64(json_data['height'])
-
+        scaled_width = int(width * scale_img_by)
+        scaled_height = int(height * scale_img_by)
 
         # depth image:
         img_depth = json_data['img_depth']
-        depth_tensor = decode_and_scale_depth(img_depth, scale_img_by, width, height)
+        #depth_tensor = decode_and_scale_depth(img_depth, scale_img_by, width, height)
+        depth_tensor = scale_tensor_image( decode_rgb_image(img_depth), scaled_width, scaled_height )
 
         mat_msks = []
         for img in masks_base64:
-            scaled_mask = decode_and_scale_mask(img, scale_img_by, width, height)
+            #scaled_mask = decode_and_scale_mask(img, scale_img_by, width, height)
+            scaled_mask = scale_tensor_image( decode_mask(img, width, height), scaled_width, scaled_height )
             mat_msks.append(scaled_mask)
 
         mat_imgs = []
         for img in mat_imgs_base64:
             if img is not None:
-                img = decode_image_prompt(img)
-            
+                #img = decode_image_prompt(img)
+                img = decode_rgb_image(img)        
             mat_imgs.append(img)
-
-
-        width = int(width * scale_img_by)
-        height = int(height * scale_img_by) # wrapping in int cuz that's the format for empty mask and latent
+       
+        print("depth_tensor shape:", depth_tensor.shape) # we expect [1, H, W, 3]
         
-        
+        for i, mask in enumerate(mat_msks):
+            print(f"mat_msks[{i}] shape:", mask.shape) # we expect [1, H, W]
+            print(f"mat_msks[{i}] value range: min={mask[0].min().item()}, max={mask[0].max().item()}")
+        for i, img in enumerate(mat_imgs):
+            if img is not None:
+                print(f"mat_imgs[{i}] shape:", img.shape) # we expect [1, H, W, 3]
+            else:
+                print(f"mat_imgs[{i}] is None")
+                     
+
+        print("width:", width)
+        print("height:", height)
+        print("scaled_width:", scaled_width)
+        print("scaled_height:", scaled_height)
+
         return (
             mat_txts,
             mat_imgs,
@@ -170,15 +192,12 @@ class UnpackModelSnapshot:
             env_scene,
             env_style,
             env_negative,
-            width,
-            height,
+            scaled_width,
+            scaled_height,
             depth_tensor,
             None, # no edge image support yet
             None, # no style image support yet
         )
-
-
-
 
 
 '''
@@ -214,4 +233,123 @@ class LoadModelSnapshotAuto:
         m.update(current_time.encode('utf-8'))
 
         return m.digest().hex()
+'''
+
+
+# ==============================================================================
+# utility functions
+# ==============================================================================
+
+
+def decode_mask(base64_mask, width, height):
+    image_data = base64.b64decode(base64_mask)
+    decompressed_data = gzip.decompress(image_data)
+    flat_array = np.frombuffer(decompressed_data, dtype=np.uint8)
+    reshaped_array = flat_array.reshape((height, width))
+    # scale up to 0/255 for display, but output shape [1, H, W]
+    image_tensor = torch.from_numpy((reshaped_array * 255).astype(np.float32) / 255.0).unsqueeze(0)
+    return image_tensor  # [1, H, W]
+
+def decode_rgb_image(base64_img):
+    image_data = base64.b64decode(base64_img)
+    pil_img = node_helpers.pillow(Image.open, io.BytesIO(image_data))
+    if pil_img.mode == 'I':
+        pil_img = pil_img.point(lambda i: i * (1 / 255))
+    pil_img = pil_img.convert("RGB")
+    image_array = np.array(pil_img).astype(np.float32) / 255.0
+    image_tensor = torch.from_numpy(image_array)[None, ...]  # [1, H, W, 3]
+    return image_tensor
+
+def decode_gray_image(base64_img):
+    image_data = base64.b64decode(base64_img)
+    pil_img = node_helpers.pillow(Image.open, io.BytesIO(image_data))
+    pil_img = pil_img.convert("L")
+    image_array = np.array(pil_img).astype(np.float32) / 255.0
+    image_tensor = torch.from_numpy(image_array)[None, ...]  # [1, H, W]
+    return image_tensor
+
+def scale_tensor_image(image_tensor, width, height):
+    # image_tensor: [1, H, W, 3] or [1, H, W]
+    arr = image_tensor.squeeze(0).cpu().numpy()
+    if arr.ndim == 3:  # HWC
+        pil_img = Image.fromarray((arr * 255).clip(0, 255).astype(np.uint8))
+        pil_img = pil_img.resize((width, height), Image.BILINEAR)
+        arr = np.array(pil_img).astype(np.float32) / 255.0
+        arr = arr[None, ...]  # [1, H, W, 3]
+    else:  # HW
+        pil_img = Image.fromarray((arr * 255).clip(0, 255).astype(np.uint8))
+        pil_img = pil_img.resize((width, height), Image.BILINEAR)
+        arr = np.array(pil_img).astype(np.float32) / 255.0
+        arr = arr[None, ...]  # [1, H, W]
+    return torch.from_numpy(arr)
+
+
+'''
+
+def decode_and_scale_mask(base64_mask, scale_factor, width, height):
+    image_data = base64.b64decode(base64_mask) # Decode the base64 data
+    decompressed_data = gzip.decompress(image_data) # Decompress the gzip data
+    flat_array = np.frombuffer(decompressed_data, dtype=np.uint8) # Convert the decompressed data to a numpy array
+    reshaped_array = flat_array.reshape((height, width))
+    grayscale_image = Image.fromarray(reshaped_array.astype('uint8')*255, 'L') # Convert the numpy array to a greyscale image
+    
+    scaled_pil = dumb_scale_image(grayscale_image, scale_factor, width, height)
+
+    image_array = np.array(scaled_pil).astype(np.float32) / 255.0  # Normalize pixel values to [0, 1]
+    image_tensor = torch.from_numpy(image_array).unsqueeze(0)  # Shape becomes [1, 1, H, W]
+
+    return image_tensor
+
+
+
+def decode_and_scale_depth(base64_depth, scale_factor, width, height):
+    image_data = base64.b64decode(base64_depth) # becomes binary data
+    pil_img = node_helpers.pillow(Image.open, io.BytesIO(image_data)) # builtin function - handles any potential errors during image loading
+    # io.BytesIO allows to convert binary data into a in-memory file-like obj that PIL can read
+
+    if pil_img.mode == 'I':
+        pil_img = pil_img.point(lambda i: i * (1 / 255)) # pixels: -+2,147,000,000 -> [0,1]
+
+    pil_img = pil_img.convert("RGB") # converting / ensuring image is in RGB format 
+
+    scaled_pil = dumb_scale_image(pil_img, scale_factor, width, height)
+
+    image_array = np.array(scaled_pil).astype(np.float32) / 255.0 # -> numpy array, cuz PIL images aren't directly compatible with pytorch tensors
+    # .../255: normalizing [0,255] -> [0,1]
+    image_tensor = torch.from_numpy(image_array)[None,]
+
+    return image_tensor
+
+
+
+def decode_image_prompt(base64_img):
+    image_data = base64.b64decode(base64_img) # becomes binary data
+    pil_img = node_helpers.pillow(Image.open, io.BytesIO(image_data)) # builtin function - handles any potential errors during image loading
+    # io.BytesIO allows to convert binary data into a in-memory file-like obj that PIL can read
+
+    if pil_img.mode == 'I':
+        pil_img = pil_img.point(lambda i: i * (1 / 255)) # pixels: -+2,147,000,000 -> [0,1]
+
+    pil_img = pil_img.convert("RGB") # converting / ensuring image is in RGB format 
+
+    image_array = np.array(pil_img).astype(np.float32) / 255.0 # -> numpy array, cuz PIL images aren't directly compatible with pytorch tensors
+    # .../255: normalizing [0,255] -> [0,1]
+    image_tensor = torch.from_numpy(image_array)[None,]
+
+    return image_tensor
+
+
+def dumb_scale_image(input_image, scale_factor, width, height):
+    new_width = int(width * scale_factor)
+    new_height = int(height * scale_factor)
+    """
+    Image.ANTIALIAS filter is used for high-quality downsampling. 
+    We can replace it with other filters like Image.NEAREST, Image.BILINEAR, or 
+    Image.BICUBIC depending on the desired quality and performance.
+    """
+    scaled_image = input_image.resize((new_width, new_height), Image.BICUBIC)
+    
+    return scaled_image
+
+
 '''

@@ -8,75 +8,12 @@
 # ==============================================================================
 import torch
 import time, hashlib
-from .helpers.helpers import mask_to_image, tensor_to_base64
+from .helpers.imgutil import tensor_to_base64
 import copy
 import base64, io
 from PIL import Image
 
 #print("[pseudocomfy]\t\t init from utils.py")
-
-class MakeMaskBatch:
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "masks": ("MASK_LIST",),
-            },
-        }
-
-    RETURN_TYPES = ("IMAGE",)
-    FUNCTION = "append"
-
-    CATEGORY = "Pseudocomfy/Utils"
-
-    def append(self, masks):
-        if not masks:
-            # Create a blank image with the same shape as a normal mask image
-            # Try to get shape from a dummy mask if possible
-            dummy = torch.zeros((1, 1, 64, 64), dtype=torch.float32)
-            blank = mask_to_image(dummy)
-            return (blank,)
-        
-        result = mask_to_image(masks[0])
-        if len(masks) > 1:
-            for i in range(1, len(masks)):
-                result = torch.cat((result,  mask_to_image(masks[i])), 0)
-
-
-        return (result,)
-    
-
-class ComboNodeCozy:
-    """
-    A class to represent a dynamic combo changer in ComfyUI.
-    """
-    RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("blank_image",)
-    CATEGORY = "Pseudocomfy/Utils"
-    OUTPUT_NODE = True # marks this node as an output node, executes even with nothing attached
-    FUNCTION = "func"
-
-    #print("[pseudocomfy]\t\t init from ComboNodeCozy")
-    
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {"required": {
-            "test_input": ("IMAGE",),
-        }}
-
-    def func(self, test_input):
-        # Return a blank RGB image (1, 3, 256, 256)
-        #print("[pseudocomfy]\t\t ComboNodeCozy.func() called")
-        blank = torch.zeros((1, 3, 256, 256), dtype=torch.float32)
-        return (blank,)
-    
-    @classmethod
-    def IS_CHANGED(s, test_input):
-        m = hashlib.sha256()
-        current_time = str(time.time())
-        m.update(current_time.encode('utf-8'))
-
-        return m.digest().hex()
 
 
 class PreviewEnvironmentalPrompts:
@@ -106,6 +43,7 @@ class PreviewEnvironmentalPrompts:
     def notify(self, env_scene, env_style, env_negative, unique_id=None, extra_pnginfo=None):
         if unique_id is not None and extra_pnginfo is not None:
             # it looks like extra_pnginfo is only a list in earlier versions of comfyui
+            # this component might work perfectly fine without it
             if (
                 isinstance(extra_pnginfo, list)
                 and len(extra_pnginfo) > 0
@@ -122,7 +60,8 @@ class PreviewEnvironmentalPrompts:
                     node["env_style"] = env_style
                     node["env_negative"] = env_negative
             else:
-                print("[pseudocomfy]\t\tError: extra_pnginfo is not a valid list or missing 'workflow' key")
+                pass
+                #print("[pseudocomfy]\t\tError: extra_pnginfo is not a valid list or missing 'workflow' key")
 
         return {
             "ui": {"env_scene": [env_scene], "env_style": [env_style], "env_negative": [env_negative]}, # not sure why these need to be wrapped in a list 
@@ -153,6 +92,32 @@ class PreviewMaterialPrompts:
     def notify(self, mat_txts, mat_imgs, mat_msks):
         print("[pseudocomfy]\t\t PreviewMaterialPrompts.notify() called")
         print("[pseudocomfy]\t\t mat_msks is len: ", len(mat_msks))
+        
+        mat_imgs_b64 = [tensor_to_base64(t) for t in mat_imgs]
+        mat_msks_b64 = [tensor_to_base64(t) for t in mat_msks]
+        
+        return {
+            "ui": {"mat_txts": mat_txts, "mat_imgs": mat_imgs_b64, "mat_msks": mat_msks_b64}, 
+            "result": (copy.deepcopy(mat_txts),copy.deepcopy(mat_imgs),copy.deepcopy(mat_msks),)
+            }
+    
+class ProcessImagePrompt:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "img": ("IMAGE", {"forceInput": True}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("img",)
+    FUNCTION = "func"
+    OUTPUT_NODE = True
+    CATEGORY = "Pseudocomfy/Utils"
+
+    def func(self, img):
+        print("[pseudocomfy]\t\t PreviewMaterialPrompts.func() called")
         
         mat_imgs_b64 = [tensor_to_base64(t) for t in mat_imgs]
         mat_msks_b64 = [tensor_to_base64(t) for t in mat_msks]
