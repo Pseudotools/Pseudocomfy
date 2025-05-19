@@ -44,7 +44,7 @@ def tensor_to_base64(tensor):
     if tensor is None:
         return None
 
-    #print("[pseudocomfy]\t\t tensor_to_base64: tensor shape =", tuple(tensor.shape))
+    #print("[pseudocomfy] tensor_to_base64()\\n\ttensor shape =", tuple(tensor.shape))
 
     arr = tensor.detach().cpu().numpy()
 

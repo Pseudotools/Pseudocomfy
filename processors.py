@@ -33,8 +33,7 @@ class ApplyDenseDiffusion:
     CATEGORY = "Pseudocomfy/Processors"
 
     def combiner(self, model, clip, mat_txts, mat_msks, env_scene, env_style, env_negative, width, height):
-        print("[pseudocomfy]\t\t mat_msks is len: ", len(mat_msks))
-
+        
         # if model or clip is a list, use the first element
         if isinstance(model, list) and len(model)>0: model = model[0]
         if isinstance(clip, list) and len(clip)>0: clip = clip[0]
@@ -47,8 +46,14 @@ class ApplyDenseDiffusion:
         # if width or height are a list, use the first element
         if isinstance(width, list) and len(width)>0: width = width[0]
         if isinstance(height, list) and len(height)>0: height = height[0]
-        print("[pseudocomfy] ApplyDenseDiffusion\t\t width, height: ", width, height)
         
+        # Create a report string pairing each mat_txt with its corresponding mat_msk shape
+        mat_report = "\n".join(
+            f"\tmat[{i}]: {msk.shape} '{txt[:20]}...'"
+            for i, (txt, msk) in enumerate(zip(mat_txts, mat_msks))
+        )
+        print(f"[pseudocomfy] ApplyDenseDiffusion\n\tenv_scene: '{env_scene[:20]}...'\n\tenv_style: '{env_style[:20]}...'\n\tenv_negative: '{env_negative[:20]}...'\n\twidth: {width}, height: {height}\n{mat_report}")
+
         # Ensure all masks have shape [1, width, height]
         for i in range(len(mat_msks)):
             mask = mat_msks[i]
@@ -58,7 +63,7 @@ class ApplyDenseDiffusion:
             
             # scale the mask to the desired width and height if necessary
             if mask.shape[-2] != width or mask.shape[-1] != height:
-                print("[pseudocomfy]\t\t scaling mask to width, height: ", width, height)
+                #print("[pseudocomfy] ApplyDenseDiffusion\n\tscaling mask to width, height: ", width, height)
                 mat_msks[i] = scale_tensor_image(mask, width, height)
 
         styled_material_prompts = [prompt + ", " + env_style for prompt in mat_txts] # adding styles to each object prompt

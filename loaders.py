@@ -39,6 +39,7 @@ class LoadModelSnapshot:
     CATEGORY = "Pseudocomfy/Loaders"
 
     def load(self, string_path):
+        print(f"[pseudocomfy] LoadModelSnapshot\n\tstring_path: {string_path}")
         if urllib.parse.urlparse(string_path).scheme in ('http', 'https'):
             response = requests.get(string_path)
             response.raise_for_status()
@@ -125,7 +126,10 @@ class UnpackModelSnapshot:
     CATEGORY = "Pseudocomfy/Processors"
 
     def process_json(self, json_data):
-        #print("[pseudocomfy]\t\t ProcessJSON.process_json() called")
+        print(f"[pseudocomfy] UnpackModelSnapshot\n\tjson_data keys: {list(json_data.keys())}")
+
+        # TODO: check json_data[pseudorandom_spatial_package_version] agains current min_version (0.0 at time of writing)
+
         map_semantic = json_data['map_semantic']
         mat_txts = [entry['pmt_txt'] for entry in map_semantic]
         mat_imgs_base64 = [entry['pmt_img'] for entry in map_semantic]

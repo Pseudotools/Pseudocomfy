@@ -62,7 +62,7 @@ class PreviewEnvironmentalPrompts:
                     node["env_negative"] = env_negative
             else:
                 pass
-                #print("[pseudocomfy]\t\tError: extra_pnginfo is not a valid list or missing 'workflow' key")
+                #print("[pseudocomfy] PreviewEnvironmentalPrompts\n\tError: extra_pnginfo is not a valid list or missing 'workflow' key")
 
         return {
             "ui": {"env_scene": [env_scene], "env_style": [env_style], "env_negative": [env_negative]}, # not sure why these need to be wrapped in a list 
@@ -91,8 +91,7 @@ class PreviewMaterialPrompts:
     CATEGORY = "Pseudocomfy/Utils"
 
     def notify(self, mat_txts, mat_imgs, mat_msks):
-        print("[pseudocomfy]\t\t PreviewMaterialPrompts.notify() called")
-        print("[pseudocomfy]\t\t mat_msks is len: ", len(mat_msks))
+        #print("[pseudocomfy] PreviewMaterialPrompts\n\t mat_msks is len: ", len(mat_msks))
         
         mat_imgs_b64 = [tensor_to_base64(t) for t in mat_imgs]
         mat_msks_b64 = [tensor_to_base64(t) for t in mat_msks]
@@ -121,7 +120,7 @@ class ProcessImagePrompt:
     CATEGORY = "Pseudocomfy/Utils"
 
     def func(self, width, height, img, scale_by):
-        print("[pseudocomfy]\t\t SizeImagePrompt.func() called")
+        #print("[pseudocomfy] ProcessImagePrompt\n\t")
         
         w = int(make_multiple_of_64(width * scale_by))
         h = int(make_multiple_of_64(height * scale_by))

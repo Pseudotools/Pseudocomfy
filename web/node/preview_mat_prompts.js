@@ -8,10 +8,10 @@ app.registerExtension({
     name: 'pseudocomfy.' + _ID,
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
         if (nodeData.name !== _ID) return;
-        console.log("[pseudocomfy] Registering node extension for " + _ID);
+        //console.log("[pseudocomfy] Registering node extension for " + _ID);
 
         nodeType.prototype.onNodeCreated = function () {
-            console.log("[pseudocomfy] onNodeCreated");
+            //console.log("[pseudocomfy] onNodeCreated");
 
             // to ensure node height will show controls, 
             // add some temporary divs and store their widgets in domWidgets
@@ -226,9 +226,9 @@ function createControlsInfoWidget(itemCount, state, img, updateInfo) {
 
 
 function createPromptWidget(txts, imgs, state) {
-    console.log("[pseudocomfy] createPromptWidget");
-    console.log("[pseudocomfy] txts:", txts);
-    console.log("[pseudocomfy] imgs:", imgs);
+    //console.log("[pseudocomfy] createPromptWidget");
+    //console.log("[pseudocomfy] txts:", txts);
+    //console.log("[pseudocomfy] imgs:", imgs);
 
     const wrapper = document.createElement("div");
     wrapper.style.width = "100%";
