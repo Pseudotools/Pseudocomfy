@@ -30,6 +30,7 @@ NODE_CLASS_MAPPINGS = {
 
     "PreviewEnvironmentalPrompts": PreviewEnvironmentalPrompts,
     "PreviewMaterialPrompts": PreviewMaterialPrompts,
+    "ProcessImagePrompt": ProcessImagePrompt,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -43,5 +44,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ApplyIPAdaper": "Apply IPAdaper Conditioning",
 
     "PreviewEnvironmentalPrompts": "Preview Environmental Prompt Guidence", 
-    "PreviewMaterialPrompts": "Preview Material Prompt Guidence",   
+    "PreviewMaterialPrompts": "Preview Material Prompt Guidence",  
+    "ProcessImagePrompt": "Process Image Prompt", 
 }

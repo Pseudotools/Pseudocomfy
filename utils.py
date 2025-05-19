@@ -13,7 +13,8 @@ import copy
 import base64, io
 from PIL import Image
 
-#print("[pseudocomfy]\t\t init from utils.py")
+from .helpers.imgutil import make_multiple_of_64, scale_tensor_image
+
 
 
 class PreviewEnvironmentalPrompts:
@@ -106,24 +107,32 @@ class ProcessImagePrompt:
     def INPUT_TYPES(s):
         return {
             "required": {
+                "width": ("INT", {"forceInput": True}),
+                "height": ("INT", {"forceInput": True}),
                 "img": ("IMAGE", {"forceInput": True}),
+                "scale_by": ("FLOAT", {"default": 2.0, "min": 1.0, "max": 4.0, "step": 0.5}),
             }
         }
 
-    RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("img",)
+    RETURN_TYPES = ("INT", "INT", "IMAGE",)
+    RETURN_NAMES = ("width", "height", "img",)
     FUNCTION = "func"
     OUTPUT_NODE = True
     CATEGORY = "Pseudocomfy/Utils"
 
-    def func(self, img):
-        print("[pseudocomfy]\t\t PreviewMaterialPrompts.func() called")
+    def func(self, width, height, img, scale_by):
+        print("[pseudocomfy]\t\t SizeImagePrompt.func() called")
         
-        mat_imgs_b64 = [tensor_to_base64(t) for t in mat_imgs]
-        mat_msks_b64 = [tensor_to_base64(t) for t in mat_msks]
+        w = int(make_multiple_of_64(width * scale_by))
+        h = int(make_multiple_of_64(height * scale_by))
+        image = scale_tensor_image(img, w, h)
         
         return {
-            "ui": {"mat_txts": mat_txts, "mat_imgs": mat_imgs_b64, "mat_msks": mat_msks_b64}, 
-            "result": (copy.deepcopy(mat_txts),copy.deepcopy(mat_imgs),copy.deepcopy(mat_msks),)
+                "ui": {}, 
+                "result": (
+                    w,
+                    h,
+                    image
+                )
             }
     

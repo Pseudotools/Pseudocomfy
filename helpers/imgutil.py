@@ -82,3 +82,18 @@ def tensor_to_base64(tensor):
     b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
     return f"data:image/png;base64,{b64}"
 
+
+def scale_tensor_image(image_tensor, width, height):
+    # image_tensor: [1, H, W, 3] or [1, H, W]
+    arr = image_tensor.squeeze(0).cpu().numpy()
+    if arr.ndim == 3:  # HWC
+        pil_img = Image.fromarray((arr * 255).clip(0, 255).astype(np.uint8))
+        pil_img = pil_img.resize((width, height), Image.BILINEAR)
+        arr = np.array(pil_img).astype(np.float32) / 255.0
+        arr = arr[None, ...]  # [1, H, W, 3]
+    else:  # HW
+        pil_img = Image.fromarray((arr * 255).clip(0, 255).astype(np.uint8))
+        pil_img = pil_img.resize((width, height), Image.BILINEAR)
+        arr = np.array(pil_img).astype(np.float32) / 255.0
+        arr = arr[None, ...]  # [1, H, W]
+    return torch.from_numpy(arr)

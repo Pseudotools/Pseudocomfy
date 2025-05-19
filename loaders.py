@@ -14,7 +14,7 @@ import gzip
 import folder_paths
 import node_helpers
 
-from .helpers.imgutil import make_multiple_of_64, scale_image
+from .helpers.imgutil import make_multiple_of_64, scale_tensor_image
 
 
 CUSTOM_NODES_DIR = Path(folder_paths.folder_names_and_paths["custom_nodes"][0][0])
@@ -67,15 +67,12 @@ class LoadModelSnapshot:
         return m.digest().hex()
 
 
-
-
 class UnpackModelSnapshot:
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
                 "json_data": ("DICT", ),
-                "scale_img_by": ("FLOAT", {"default": 2.0, "min": 1.0, "max": 8.0, "step": 0.5})
             },
         }
     
@@ -127,7 +124,7 @@ class UnpackModelSnapshot:
 
     CATEGORY = "Pseudocomfy/Processors"
 
-    def process_json(self, json_data, scale_img_by):
+    def process_json(self, json_data):
         #print("[pseudocomfy]\t\t ProcessJSON.process_json() called")
         map_semantic = json_data['map_semantic']
         mat_txts = [entry['pmt_txt'] for entry in map_semantic]
@@ -147,18 +144,18 @@ class UnpackModelSnapshot:
 
         width = make_multiple_of_64(json_data['width'])
         height = make_multiple_of_64(json_data['height'])
-        scaled_width = int(width * scale_img_by)
-        scaled_height = int(height * scale_img_by)
+        #scaled_width = int(width * scale_img_by)
+        #scaled_height = int(height * scale_img_by)
 
         # depth image:
         img_depth = json_data['img_depth']
         #depth_tensor = decode_and_scale_depth(img_depth, scale_img_by, width, height)
-        depth_tensor = scale_tensor_image( decode_rgb_image(img_depth), scaled_width, scaled_height )
+        depth_tensor = scale_tensor_image( decode_rgb_image(img_depth), width, height )
 
         mat_msks = []
         for img in masks_base64:
             #scaled_mask = decode_and_scale_mask(img, scale_img_by, width, height)
-            scaled_mask = scale_tensor_image( decode_mask(img, width, height), scaled_width, scaled_height )
+            scaled_mask = scale_tensor_image( decode_mask(img, width, height), width, height )
             mat_msks.append(scaled_mask)
 
         mat_imgs = []
@@ -168,8 +165,8 @@ class UnpackModelSnapshot:
                 img = decode_rgb_image(img)        
             mat_imgs.append(img)
        
+        '''
         print("depth_tensor shape:", depth_tensor.shape) # we expect [1, H, W, 3]
-        
         for i, mask in enumerate(mat_msks):
             print(f"mat_msks[{i}] shape:", mask.shape) # we expect [1, H, W]
             print(f"mat_msks[{i}] value range: min={mask[0].min().item()}, max={mask[0].max().item()}")
@@ -178,12 +175,9 @@ class UnpackModelSnapshot:
                 print(f"mat_imgs[{i}] shape:", img.shape) # we expect [1, H, W, 3]
             else:
                 print(f"mat_imgs[{i}] is None")
-                     
 
-        print("width:", width)
-        print("height:", height)
-        print("scaled_width:", scaled_width)
-        print("scaled_height:", scaled_height)
+        print("given w,h:", width, height)
+        '''
 
         return (
             mat_txts,
@@ -192,48 +186,13 @@ class UnpackModelSnapshot:
             env_scene,
             env_style,
             env_negative,
-            scaled_width,
-            scaled_height,
+            width,
+            height,
             depth_tensor,
             None, # no edge image support yet
             None, # no style image support yet
         )
 
-
-'''
-class LoadModelSnapshotAuto:
-    @classmethod
-    def INPUT_TYPES(s):
-        json_files = [str(file.name) for file in sorted(SP_DIR.glob("*.json"), key=lambda f: f.stat().st_mtime, reverse=True)]
-        # json_files is sorted based on modification time
-        return {
-            "required": {
-                "json_file": (json_files,),
-            },
-        }
-    
-    RETURN_TYPES = ("DICT",)
-    RETURN_NAMES = ("json_data",)
-
-    FUNCTION = "load"
-
-    CATEGORY = "Pseudocomfy/Loaders"
-
-    def load(self, json_file):
-
-        with open(SP_DIR.joinpath(json_file), 'r') as f:
-            json_data = json.load(f)
-
-        return (json_data,)
-    
-    @classmethod
-    def IS_CHANGED(s, json_file):
-        m = hashlib.sha256()
-        current_time = str(time.time())
-        m.update(current_time.encode('utf-8'))
-
-        return m.digest().hex()
-'''
 
 
 # ==============================================================================
@@ -260,6 +219,7 @@ def decode_rgb_image(base64_img):
     image_tensor = torch.from_numpy(image_array)[None, ...]  # [1, H, W, 3]
     return image_tensor
 
+# not actually used.
 def decode_gray_image(base64_img):
     image_data = base64.b64decode(base64_img)
     pil_img = node_helpers.pillow(Image.open, io.BytesIO(image_data))
@@ -267,21 +227,6 @@ def decode_gray_image(base64_img):
     image_array = np.array(pil_img).astype(np.float32) / 255.0
     image_tensor = torch.from_numpy(image_array)[None, ...]  # [1, H, W]
     return image_tensor
-
-def scale_tensor_image(image_tensor, width, height):
-    # image_tensor: [1, H, W, 3] or [1, H, W]
-    arr = image_tensor.squeeze(0).cpu().numpy()
-    if arr.ndim == 3:  # HWC
-        pil_img = Image.fromarray((arr * 255).clip(0, 255).astype(np.uint8))
-        pil_img = pil_img.resize((width, height), Image.BILINEAR)
-        arr = np.array(pil_img).astype(np.float32) / 255.0
-        arr = arr[None, ...]  # [1, H, W, 3]
-    else:  # HW
-        pil_img = Image.fromarray((arr * 255).clip(0, 255).astype(np.uint8))
-        pil_img = pil_img.resize((width, height), Image.BILINEAR)
-        arr = np.array(pil_img).astype(np.float32) / 255.0
-        arr = arr[None, ...]  # [1, H, W]
-    return torch.from_numpy(arr)
 
 
 '''

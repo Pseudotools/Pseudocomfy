@@ -3,6 +3,7 @@ import node_helpers
 from .helpers.dense_diffusion import dd_combine, dd_apply
 from .helpers.ipadapter import apply_ipadapter
 from .helpers.imgutil import create_solid_mask
+from .helpers.imgutil import scale_tensor_image
 
 class ApplyDenseDiffusion:
     @classmethod
@@ -47,7 +48,18 @@ class ApplyDenseDiffusion:
         if isinstance(width, list) and len(width)>0: width = width[0]
         if isinstance(height, list) and len(height)>0: height = height[0]
         print("[pseudocomfy] ApplyDenseDiffusion\t\t width, height: ", width, height)
-
+        
+        # Ensure all masks have shape [1, width, height]
+        for i in range(len(mat_msks)):
+            mask = mat_msks[i]
+            # Check mask has three dimensions and the first dimension is 1
+            if not (isinstance(mask.shape, tuple) and len(mask.shape) == 3 and mask.shape[0] == 1):
+                raise ValueError(f"Mask at index {i} must have shape [1, width, height], got {mask.shape}")            
+            
+            # scale the mask to the desired width and height if necessary
+            if mask.shape[-2] != width or mask.shape[-1] != height:
+                print("[pseudocomfy]\t\t scaling mask to width, height: ", width, height)
+                mat_msks[i] = scale_tensor_image(mask, width, height)
 
         styled_material_prompts = [prompt + ", " + env_style for prompt in mat_txts] # adding styles to each object prompt
         # turning the list of strings into a list of conditionings:
