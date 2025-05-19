@@ -30,6 +30,8 @@ class ApplyDenseDiffusion:
     CATEGORY = "Pseudocomfy/Processors"
 
     def combiner(self, model, clip, mat_txts, mat_msks, env_scene, env_style, env_negative, width, height):
+        print("[pseudocomfy]\t\t mat_msks is len: ", len(mat_msks))
+
         # if model or clip is a list, use the first element
         if isinstance(model, list) and len(model)>0: model = model[0]
         if isinstance(clip, list) and len(clip)>0: clip = clip[0]
@@ -42,7 +44,7 @@ class ApplyDenseDiffusion:
         # if width or height are a list, use the first element
         if isinstance(width, list) and len(width)>0: width = width[0]
         if isinstance(height, list) and len(height)>0: height = height[0]
-        
+
 
         styled_material_prompts = [prompt + ", " + env_style for prompt in mat_txts] # adding styles to each object prompt
         # turning the list of strings into a list of conditionings:

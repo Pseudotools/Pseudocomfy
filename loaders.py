@@ -116,12 +116,12 @@ class UnpackModelSnapshot:
     def process_json(self, json_data, scale_img_by):
         #print("[pseudocomfy]\t\t ProcessJSON.process_json() called")
         map_semantic = json_data['map_semantic']
-        obj_txts = [entry['pmt_txt'] for entry in map_semantic]
-        obj_imgs_base64 = [entry['pmt_img'] for entry in map_semantic]
+        mat_txts = [entry['pmt_txt'] for entry in map_semantic]
+        mat_imgs_base64 = [entry['pmt_img'] for entry in map_semantic]
         
         masks_base64 = [entry['mask'] for entry in map_semantic]
 
-        if len(obj_txts) != len(masks_base64):
+        if len(mat_txts) != len(masks_base64):
             raise ValueError("Number of prompts and masks must be equal.")        
 
         
@@ -139,17 +139,17 @@ class UnpackModelSnapshot:
         img_depth = json_data['img_depth']
         depth_tensor = decode_and_scale_depth(img_depth, scale_img_by, width, height)
 
-        obj_msks = []
+        mat_msks = []
         for img in masks_base64:
             scaled_mask = decode_and_scale_mask(img, scale_img_by, width, height)
-            obj_msks.append(scaled_mask)
+            mat_msks.append(scaled_mask)
 
-        obj_imgs = []
-        for img in obj_imgs_base64:
+        mat_imgs = []
+        for img in mat_imgs_base64:
             if img is not None:
                 img = decode_image_prompt(img)
             
-            obj_imgs.append(img)
+            mat_imgs.append(img)
 
 
         width = int(width * scale_img_by)
@@ -157,9 +157,9 @@ class UnpackModelSnapshot:
         
         
         return (
-            obj_txts,
-            obj_imgs,
-            obj_msks,
+            mat_txts,
+            mat_imgs,
+            mat_msks,
             env_scene,
             env_style,
             env_negative,

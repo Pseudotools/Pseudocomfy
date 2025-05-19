@@ -29,6 +29,7 @@ NODE_CLASS_MAPPINGS = {
     "ApplyIPAdaper": ApplyIPAdaper,
 
     "PreviewEnvironmentalPrompts": PreviewEnvironmentalPrompts,
+    "PreviewMaterialPrompts": PreviewMaterialPrompts,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -41,5 +42,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ApplyDenseDiffusion": "Apply Dense Diffusion",
     "ApplyIPAdaper": "Apply IPAdaper",
 
-    "PreviewEnvironmentalPrompts": "Preview Environmental Prompts",    
+    "PreviewEnvironmentalPrompts": "Preview Environmental Prompts", 
+    "PreviewMaterialPrompts": "Preview Material Prompts",   
 }
