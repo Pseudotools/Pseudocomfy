@@ -8,7 +8,7 @@
 # ==============================================================================
 import torch
 import time, hashlib
-from .helpers.helpers import mask_to_image
+from .helpers.helpers import mask_to_image, tensor_to_base64
 import copy
 import base64, io
 from PIL import Image
@@ -154,55 +154,11 @@ class PreviewMaterialPrompts:
         print("[pseudocomfy]\t\t PreviewMaterialPrompts.notify() called")
         print("[pseudocomfy]\t\t mat_msks is len: ", len(mat_msks))
         
-        mat_imgs_b64 = [self.tensor_to_base64(t) for t in mat_imgs]
-        mat_msks_b64 = [self.tensor_to_base64(t) for t in mat_msks]
+        mat_imgs_b64 = [tensor_to_base64(t) for t in mat_imgs]
+        mat_msks_b64 = [tensor_to_base64(t) for t in mat_msks]
         
         return {
             "ui": {"mat_txts": mat_txts, "mat_imgs": mat_imgs_b64, "mat_msks": mat_msks_b64}, 
             "result": (copy.deepcopy(mat_txts),copy.deepcopy(mat_imgs),copy.deepcopy(mat_msks),)
             }
     
-    def tensor_to_base64(self, tensor):
-        """
-        Converts a torch tensor (C,H,W), (1,H,W), (3,H,W), (H,W), (H,W,3), or (1,H,W,3) to a base64 PNG string.
-        """
-        if tensor is None:
-            return None
-
-        #print("[pseudocomfy]\t\t tensor_to_base64: tensor shape =", tuple(tensor.shape))
-
-        arr = tensor.detach().cpu().numpy()
-
-        # Remove batch dimension if present
-        if arr.ndim == 4:
-            if arr.shape[0] == 1:
-                arr = arr[0]
-            else:
-                raise ValueError(f"Unsupported 4D tensor shape: {arr.shape}")
-
-        # Handle channel-first (C,H,W)
-        if arr.ndim == 3:
-            if arr.shape[0] == 1:  # Grayscale (1,H,W)
-                arr = arr[0]
-                mode = "L"
-            elif arr.shape[0] == 3:  # RGB (3,H,W)
-                arr = arr.transpose(1, 2, 0)
-                mode = "RGB"
-            elif arr.shape[2] == 3:  # (H,W,3)
-                mode = "RGB"
-            elif arr.shape[2] == 1:  # (H,W,1)
-                arr = arr[:, :, 0]
-                mode = "L"
-            else:
-                raise ValueError(f"Unsupported 3D tensor shape: {arr.shape}")
-        elif arr.ndim == 2:
-            mode = "L"
-        else:
-            raise ValueError(f"Unsupported tensor shape for image: {arr.shape}")
-
-        arr = (arr * 255).clip(0, 255).astype("uint8")
-        img = Image.fromarray(arr, mode)
-        buf = io.BytesIO()
-        img.save(buf, format="PNG")
-        b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-        return f"data:image/png;base64,{b64}"

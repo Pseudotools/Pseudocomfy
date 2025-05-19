@@ -39,9 +39,9 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "LoadModelSnapshot": "Load Model Snapshot",
     "UnpackModelSnapshot": "Unpack Model Snapshot",
 
-    "ApplyDenseDiffusion": "Apply Dense Diffusion",
-    "ApplyIPAdaper": "Apply IPAdaper",
+    "ApplyDenseDiffusion": "Apply Dense Diffusion Conditioning",
+    "ApplyIPAdaper": "Apply IPAdaper Conditioning",
 
-    "PreviewEnvironmentalPrompts": "Preview Environmental Prompts", 
-    "PreviewMaterialPrompts": "Preview Material Prompts",   
+    "PreviewEnvironmentalPrompts": "Preview Environmental Prompt Guidence", 
+    "PreviewMaterialPrompts": "Preview Material Prompt Guidence",   
 }

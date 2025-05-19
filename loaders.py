@@ -72,27 +72,33 @@ class UnpackModelSnapshot:
             },
         }
     
-    RETURN_TYPES = ("STRING",
-                    "IMAGE",
-                    "IMAGE",
-                    "STRING",
-                    "STRING",
-                    "STRING",
-                    "INT",
-                    "INT",
-                    "IMAGE",
-                    "IMAGE",)
+    RETURN_TYPES = (
+                        "STRING",
+                        "IMAGE",
+                        "IMAGE",
+                        "STRING",
+                        "STRING",
+                        "STRING",
+                        "INT",
+                        "INT",
+                        "IMAGE",
+                        "IMAGE",
+                        "IMAGE",
+                    )
     
-    RETURN_NAMES = ("mat_txts",
-                    "mat_imgs",
-                    "mat_msks",
-                    "env_scene",
-                    "env_style",
-                    "env_negative",
-                    "width",
-                    "height",
-                    "img_depth",
-                    "img_edge",) 
+    RETURN_NAMES = (
+                        "mat_txts",
+                        "mat_imgs",
+                        "mat_msks",
+                        "env_scene",
+                        "env_style",
+                        "env_negative",
+                        "width",
+                        "height",
+                        "img_depth",
+                        "img_edge",
+                        "img_style",
+                    ) 
     
     OUTPUT_IS_LIST = (
                         True,
@@ -104,7 +110,8 @@ class UnpackModelSnapshot:
                         False,
                         False,
                         False,
-                        False,                      
+                        False,
+                        False,                       
                     )
 
 
@@ -166,7 +173,8 @@ class UnpackModelSnapshot:
             width,
             height,
             depth_tensor,
-            [],
+            None, # no edge image support yet
+            None, # no style image support yet
         )
 
 
