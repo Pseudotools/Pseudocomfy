@@ -18,7 +18,6 @@ from PIL import Image
 from .helpers.imgutil import make_multiple_of_64, scale_tensor_image
 
 
-
 class PreviewEnvironmentalPrompts:
     """
     Utility class for previewing environmental prompts.
@@ -82,7 +81,7 @@ class PreviewEnvironmentalPrompts:
             "ui": {"env_scene": [env_scene], "env_style": [env_style], "env_negative": [env_negative]}, 
             "result": (env_scene, env_style, env_negative)
             }
-    
+   
 
 class PreviewMaterialPrompts:
     """
@@ -130,7 +129,6 @@ class PreviewMaterialPrompts:
             "ui": {"mat_txts": mat_txts, "mat_imgs": mat_imgs_b64, "mat_msks": mat_msks_b64}, 
             "result": (copy.deepcopy(mat_txts),copy.deepcopy(mat_imgs),copy.deepcopy(mat_msks),)
             }
-
 
 
 class ProcessImagePrompt:
@@ -185,8 +183,7 @@ class ProcessImagePrompt:
                     image,
                 )
             }
-    
-
+ 
 
 class BlurMask:
     """
