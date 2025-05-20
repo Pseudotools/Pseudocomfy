@@ -6,6 +6,26 @@ from .helpers.imgutil import create_solid_mask
 from .helpers.imgutil import scale_tensor_image
 
 class ApplyDenseDiffusion:
+    """
+    Processor class for applying dense diffusion to material prompts within a scene context.
+    Inputs:
+        model (MODEL): The base model to apply dense diffusion to.
+        clip (CLIP): The CLIP model used for text encoding.
+        mat_txts (list of str): List of material prompt texts, one for each object/material.
+        mat_msks (list of tensor): List of mask tensors as [1, H, W], one for each material prompt.
+        env_scene (str): Scene description prompt.
+        env_style (str): Style description prompt to be appended to each material prompt.
+        env_negative (str): Negative prompt for conditioning.
+        width (int): Target width for all masks and outputs.
+        height (int): Target height for all masks and outputs.
+    Outputs:
+        model (MODEL): The processed model after applying dense diffusion with all prompts and masks.
+        positive (CONDITIONING): The positive conditioning tensor for the combined scene and material prompts.
+        negative (CONDITIONING): The negative conditioning tensor for the negative prompt.
+    Additional Information:
+        - Material masks are automatically resized to the specified width and height if needed.
+        - Each material prompt is combined with the style prompt for conditioning.
+    """
     @classmethod
     def INPUT_TYPES(s):
         return {

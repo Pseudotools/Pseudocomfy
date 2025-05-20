@@ -23,6 +23,18 @@ SP_DIR = CUSTOM_NODES_DIR.joinpath("Pseudocomfy", "snapshots")
 
 
 class LoadModelSnapshot:
+    """
+    Loader class for retrieving model snapshot data from a local directory or a remote URL.
+    Inputs:
+        string_path (str): Path to a directory containing JSON files or a URL pointing to a JSON resource.
+            - If a URL (http/https), the JSON is fetched via HTTP GET.
+            - If a local directory, the most recently modified JSON file is loaded.
+    Outputs:
+        json_data (dict): The loaded JSON data from the selected file or URL.
+    Additional Information:
+        - When loading from a directory, the loader searches for all JSON files and selects the most recently modified one.
+        - Raises FileNotFoundError if no JSON files are found in the specified directory.
+    """
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -69,6 +81,33 @@ class LoadModelSnapshot:
 
 
 class UnpackModelSnapshot:
+    """
+    Processor class for unpacking a model snapshot JSON into its constituent components for further processing.
+    Inputs:
+        json_data (DICT): Dictionary containing the model snapshot data, including material prompts, images, masks, environment prompts, and image metadata.
+    Outputs:
+        mat_txts (list of str): List of material prompt texts, one for each material/object in the scene.
+        mat_imgs (list of tensor or None): List of decoded RGB image tensors ([1, H, W, 3]) for each material prompt, or None if not available.
+        mat_msks (list of tensor): List of mask tensors ([1, H, W]) corresponding to each material prompt.
+        env_scene (str): Scene description prompt from the environment.
+        env_style (str): Style description prompt from the environment.
+        env_negative (str): Negative prompt for conditioning from the environment.
+        width (int): Target width for all masks and outputs, rounded to the nearest multiple of 64.
+        height (int): Target height for all masks and outputs, rounded to the nearest multiple of 64.
+        img_depth (tensor): Decoded and resized depth image tensor ([1, H, W, 3]).
+        img_edge (None): Placeholder for edge image output (not supported yet).
+        img_style (None): Placeholder for style image output (not supported yet).
+    Additional Information:
+        - The number of material prompts, images, and masks must be equal.
+        - All images and masks are decoded and resized to the specified width and height.
+        - The processor expects specific keys in the input JSON: 
+                'map_semantic', 
+                'pmts_environment', 
+                'width', 
+                'height', 
+                'img_depth'
+        - Edge and style image outputs are currently not supported and will be returned as None.
+    """
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -166,11 +205,15 @@ class UnpackModelSnapshot:
         for img in mat_imgs_base64:
             if img is not None:
                 #img = decode_image_prompt(img)
-                img = decode_rgb_image(img)        
+                img = decode_rgb_image(img) # produces [1, H, W, 3], same as other rgb images
             mat_imgs.append(img)
        
+        
+        print(f"\tgiven w,h: ({width}, {height})")
+        print(f"\tdepth_tensor shape: {depth_tensor.shape} ([1, H, W, 3] expected)")
+        print(f"\tmat txts/imgs/msks lengths: {len(mat_txts)},{len(mat_imgs)},{len(mat_msks)} (all should be equal)")
+        if len(mat_msks) > 1: print(f"\tmat_msks shape:{mat_msks[0].shape} ([1, H, W] expected)")
         '''
-        print("depth_tensor shape:", depth_tensor.shape) # we expect [1, H, W, 3]
         for i, mask in enumerate(mat_msks):
             print(f"mat_msks[{i}] shape:", mask.shape) # we expect [1, H, W]
             print(f"mat_msks[{i}] value range: min={mask[0].min().item()}, max={mask[0].max().item()}")
@@ -179,9 +222,7 @@ class UnpackModelSnapshot:
                 print(f"mat_imgs[{i}] shape:", img.shape) # we expect [1, H, W, 3]
             else:
                 print(f"mat_imgs[{i}] is None")
-
-        print("given w,h:", width, height)
-        '''
+        '''        
 
         return (
             mat_txts,

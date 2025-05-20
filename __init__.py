@@ -31,6 +31,7 @@ NODE_CLASS_MAPPINGS = {
     "PreviewEnvironmentalPrompts": PreviewEnvironmentalPrompts,
     "PreviewMaterialPrompts": PreviewMaterialPrompts,
     "ProcessImagePrompt": ProcessImagePrompt,
+    "BlurMask": BlurMask,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -46,4 +47,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PreviewEnvironmentalPrompts": "Preview Environmental Prompt Guidence", 
     "PreviewMaterialPrompts": "Preview Material Prompt Guidence",  
     "ProcessImagePrompt": "Process Image Prompt", 
+    "BlurMask": "Blur Mask",
 }

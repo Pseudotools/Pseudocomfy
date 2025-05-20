@@ -8,7 +8,7 @@ from PIL import Image, ImageOps
 import numpy as np
 import io
 import torch
-
+import torch.nn.functional as F
 
 
 
@@ -33,8 +33,6 @@ def scale_image(input_image, width, height):
     scaled_image = input_image.resize((new_width, new_height), Image.BICUBIC)
     
     return scaled_image
-
-
 
 def tensor_to_base64(tensor):
     
