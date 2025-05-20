@@ -49,7 +49,7 @@ class ApplyDenseDiffusion:
         
         # Create a report string pairing each mat_txt with its corresponding mat_msk shape
         mat_report = "\n".join(
-            f"\tmat[{i}]: {msk.shape} '{txt[:20]}...'"
+            f"\tmat[{i}]: {tuple(msk.shape)} '{txt[:20]}...'"
             for i, (txt, msk) in enumerate(zip(mat_txts, mat_msks))
         )
         print(f"[pseudocomfy] ApplyDenseDiffusion\n\tenv_scene: '{env_scene[:20]}...'\n\tenv_style: '{env_style[:20]}...'\n\tenv_negative: '{env_negative[:20]}...'\n\twidth: {width}, height: {height}\n{mat_report}")

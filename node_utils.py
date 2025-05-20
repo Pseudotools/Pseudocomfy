@@ -64,8 +64,8 @@ class PreviewEnvironmentalPrompts:
                 pass
                 #print("[pseudocomfy] PreviewEnvironmentalPrompts\n\tError: extra_pnginfo is not a valid list or missing 'workflow' key")
 
-        return {
-            "ui": {"env_scene": [env_scene], "env_style": [env_style], "env_negative": [env_negative]}, # not sure why these need to be wrapped in a list 
+        return { #comfyui expects all values in ui to be wrapped in a list
+            "ui": {"env_scene": [env_scene], "env_style": [env_style], "env_negative": [env_negative]}, 
             "result": (env_scene, env_style, env_negative)
             }
     
@@ -96,7 +96,7 @@ class PreviewMaterialPrompts:
         mat_imgs_b64 = [tensor_to_base64(t) for t in mat_imgs]
         mat_msks_b64 = [tensor_to_base64(t) for t in mat_msks]
         
-        return {
+        return { #comfyui expects all values in ui to be wrapped in a list, since these are all lists we're fine.
             "ui": {"mat_txts": mat_txts, "mat_imgs": mat_imgs_b64, "mat_msks": mat_msks_b64}, 
             "result": (copy.deepcopy(mat_txts),copy.deepcopy(mat_imgs),copy.deepcopy(mat_msks),)
             }
@@ -106,32 +106,39 @@ class ProcessImagePrompt:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "width": ("INT", {"forceInput": True}),
-                "height": ("INT", {"forceInput": True}),
+                "given_width": ("INT", {"forceInput": True}),
+                "given_height": ("INT", {"forceInput": True}),
                 "img": ("IMAGE", {"forceInput": True}),
                 "scale_by": ("FLOAT", {"default": 2.0, "min": 1.0, "max": 4.0, "step": 0.5}),
             }
         }
 
     RETURN_TYPES = ("INT", "INT", "IMAGE",)
-    RETURN_NAMES = ("width", "height", "img",)
+    RETURN_NAMES = ("scaled_width", "scaled_height", "img",)
     FUNCTION = "func"
     OUTPUT_NODE = True
     CATEGORY = "Pseudocomfy/Utils"
 
-    def func(self, width, height, img, scale_by):
-        #print("[pseudocomfy] ProcessImagePrompt\n\t")
+    def func(self, given_width, given_height, img, scale_by):
+        print(f"[pseudocomfy] ProcessImagePrompt\n\tgiven: {given_width}x{given_height}\n\tscale_by: {scale_by}\n\timg: {img.shape}")
         
-        w = int(make_multiple_of_64(width * scale_by))
-        h = int(make_multiple_of_64(height * scale_by))
-        image = scale_tensor_image(img, w, h)
-        
+        scaled_width = int(make_multiple_of_64(given_width * scale_by))
+        scaled_height = int(make_multiple_of_64(given_height * scale_by))
+        image = scale_tensor_image(img, scaled_width, scaled_height)
+        print("completed scaling to: ", scaled_width, scaled_height, img.shape)
+        #return (scaled_width, scaled_height,image,)
         return {
-                "ui": {}, 
+                "ui": { #comfyui expects all values in ui to be wrapped in a list
+                        "img": [tensor_to_base64(image)], 
+                        "given_width": [given_width], 
+                        "given_height": [given_height], 
+                        "scaled_width": [scaled_width], 
+                        "scaled_height": [scaled_height]
+                    }, 
                 "result": (
-                    w,
-                    h,
-                    image
+                    scaled_width,
+                    scaled_height,
+                    image,
                 )
             }
     
