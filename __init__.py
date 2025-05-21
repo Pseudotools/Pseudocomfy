@@ -20,35 +20,37 @@ __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
 # =============================================================================
 
 NODE_CLASS_MAPPINGS = {
-    #"MakeMaskBatch": MakeMaskBatch,
-
-    #"LoadJSONAuto": LoadJSONAuto,
     "LoadModelSnapshot": LoadModelSnapshot,
     "UnpackModelSnapshot": UnpackModelSnapshot,
 
-    "ApplyDenseDiffusion": ApplyDenseDiffusion,
-    "ApplyIPAdaper": ApplyIPAdaper,
+    "ApplyDenseDiffusionSDXL": ApplyDenseDiffusionSDXL,
+    "ApplyIPAdaperSDXL": ApplyIPAdaperSDXL,
     "IPAdapterUnifiedLoaderClone": IPAdapterUnifiedLoaderClone,
 
     "PreviewEnvironmentalPrompts": PreviewEnvironmentalPrompts,
     "PreviewMaterialPrompts": PreviewMaterialPrompts,
     "ProcessImagePrompt": ProcessImagePrompt,
+
     "BlurMask": BlurMask,
+
+    "PreviewStrings": PreviewStrings,
+    "ConcatStrings": ConcatStrings,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    #"MakeMaskBatch": "Batch Masks",
-
-    #"LoadJSONAuto": "Load JSON (Auto)",
     "LoadModelSnapshot": "Load Model Snapshot",
     "UnpackModelSnapshot": "Unpack Model Snapshot",
 
-    "ApplyDenseDiffusion": "Apply Dense Diffusion Conditioning",
-    "ApplyIPAdaper": "Apply IPAdaper Conditioning",
+    "ApplyDenseDiffusionSDXL": "Apply Dense Diffusion Conditioning (SDXL)",
+    "ApplyIPAdaperSDXL": "Apply IPAdaper Conditioning (SDXL)",
     "IPAdapterUnifiedLoaderClone": "IPAdapter Unified Loader (Clone)",
 
     "PreviewEnvironmentalPrompts": "Preview Environmental Prompt Guidence", 
     "PreviewMaterialPrompts": "Preview Material Prompt Guidence",  
     "ProcessImagePrompt": "Process Image Prompt", 
+
     "BlurMask": "Blur Mask",
+
+    "PreviewStrings": "Preview Strings",
+    "ConcatStrings": "Concat Strings",
 }

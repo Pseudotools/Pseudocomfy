@@ -6,14 +6,14 @@ from .helpers.ipadapter import apply_ipadapter
 from .helpers.imgutil import create_solid_mask
 from .helpers.imgutil import scale_tensor_image
 
-class ApplyDenseDiffusion:
+class ApplyDenseDiffusionSDXL:
     """
     Processor class for applying dense diffusion to material prompts within a scene context.
     Inputs:
         model (MODEL): The base model to apply dense diffusion to.
         clip (CLIP): The CLIP model used for text encoding.
-        mat_txts (list of str): List of material prompt texts, one for each object/material.
-        mat_msks (list of tensor): List of mask tensors as [1, H, W], one for each material prompt.
+        mat_txts_lst (list of str): List of material prompt texts, one for each object/material.
+        mat_msks_lst (list of tensor): List of mask tensors as [1, H, W], one for each material prompt.
         env_scene (str): Scene description prompt.
         env_style (str): Style description prompt to be appended to each material prompt.
         env_negative (str): Negative prompt for conditioning.
@@ -33,8 +33,8 @@ class ApplyDenseDiffusion:
             "required": {
                 "model": ("MODEL", {"forceInput": True}),
                 "clip": ("CLIP", {"forceInput": True}),
-                "mat_txts": ("STRING", {"forceInput": True}),
-                "mat_msks": ("IMAGE", {"forceInput": True}),
+                "mat_txts_lst": ("STRING", {"forceInput": True}),
+                "mat_msks_lst": ("IMAGE", {"forceInput": True}),
                 "env_scene": ("STRING", {"forceInput": True}),
                 "env_style": ("STRING", {"forceInput": True}),
                 "env_negative": ("STRING", {"forceInput": True}),
@@ -53,8 +53,11 @@ class ApplyDenseDiffusion:
 
     CATEGORY = "Pseudocomfy/Processors"
 
-    def func(self, model, clip, mat_txts, mat_msks, env_scene, env_style, env_negative, width, height):
-        
+    def func(self, model, clip, mat_txts_lst, mat_msks_lst, env_scene, env_style, env_negative, width, height):
+        # material inputs are expected to be lists
+        mat_txts = mat_txts_lst 
+        mat_msks = mat_msks_lst
+
         # if model or clip is a list, use the first element
         if isinstance(model, list) and len(model)>0: model = model[0]
         if isinstance(clip, list) and len(clip)>0: clip = clip[0]
@@ -73,7 +76,7 @@ class ApplyDenseDiffusion:
             f"\tmat[{i}]: {tuple(msk.shape)} '{txt[:20]}...'"
             for i, (txt, msk) in enumerate(zip(mat_txts, mat_msks))
         )
-        print(f"[pseudocomfy] ApplyDenseDiffusion\n\tenv_scene: '{env_scene[:20]}...'\n\tenv_style: '{env_style[:20]}...'\n\tenv_negative: '{env_negative[:20]}...'\n\twidth: {width}, height: {height}\n{mat_report}")
+        print(f"[pseudocomfy] ApplyDenseDiffusion\n\tenv_scene: '{env_scene[:20]}...'\n\tenv_style: '{env_style[:20]}...'\n\tenv_negative: '{env_negative[:20]}...'\n\twidth, height: ({width},{height})\n{mat_report}")
 
         # Ensure all masks have shape [1, width, height]
         for i in range(len(mat_msks)):
@@ -108,7 +111,7 @@ class ApplyDenseDiffusion:
         return (work_model, cond, negative_prompt_cond)
     
 
-class ApplyIPAdaper:
+class ApplyIPAdaperSDXL:
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -116,9 +119,9 @@ class ApplyIPAdaper:
                 "model": ("MODEL",),
                 "clip": ("CLIP",),
                 "ipadapter": ("IPADAPTER",),
-                "mat_txts": ("STRING", {"forceInput": True}), # we expect a list of strings
-                "mat_imgs": ("IMAGE", {"forceInput": True}), # we expect a list of images
-                "mat_msks": ("IMAGE", {"forceInput": True}), # we expect a list of masks
+                "mat_txts_lst": ("STRING", {"forceInput": True}), # we expect a list of strings
+                "mat_imgs_lst": ("IMAGE", {"forceInput": True}), # we expect a list of images
+                "mat_msks_lst": ("IMAGE", {"forceInput": True}), # we expect a list of masks
                 "env_scene": ("STRING", {"forceInput": True}),
                 "env_style": ("STRING", {"forceInput": True}),
                 "env_negative": ("STRING", {"forceInput": True}),
@@ -127,6 +130,8 @@ class ApplyIPAdaper:
                 "env_cond_strength": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 10.0, "step": 0.01}),
                 "mat_cond_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.01}),
                 "ipadapter_weight": ("FLOAT", { "default": 1.0, "min": -1, "max": 3, "step": 0.05 }),
+                "start_at": ("FLOAT", { "default": 0.0, "min": 0.0, "max": 1.0, "step": 0.05 }),
+                "end_at": ("FLOAT", { "default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05 }),
             },
         }
     
@@ -139,10 +144,15 @@ class ApplyIPAdaper:
     FUNCTION = "func"
     CATEGORY = "Pseudocomfy/Processors"
 
-    def func(self, model, clip, ipadapter, mat_txts, mat_imgs, mat_msks, env_scene, env_style, env_negative, width, height, env_cond_strength, mat_cond_strength, ipadapter_weight):
-        
+    def func(self, model, clip, ipadapter, mat_txts_lst, mat_imgs_lst, mat_msks_lst, env_scene, env_style, env_negative, width, height, env_cond_strength, mat_cond_strength, ipadapter_weight, start_at, end_at):
+        # material inputs are expected to be lists
+        mat_txts = mat_txts_lst 
+        mat_imgs = mat_imgs_lst
+        mat_msks = mat_msks_lst
+
         # unwrap all expected singletons
         #
+
         
         # if model or clip or ipadapter is a list, use the first element
         if isinstance(model, list) and len(model)>0: model = model[0]
@@ -163,12 +173,16 @@ class ApplyIPAdaper:
         if isinstance(mat_cond_strength, list) and len(mat_cond_strength)>0: mat_cond_strength = mat_cond_strength[0]
         if isinstance(ipadapter_weight, list) and len(ipadapter_weight)>0: ipadapter_weight = ipadapter_weight[0]
 
+        # start_at and end_at are singletons
+        if isinstance(start_at, list) and len(start_at)>0: start_at = start_at[0]
+        if isinstance(end_at, list) and len(end_at)>0: end_at = end_at[0]
 
         # report inputs
         #
 
         print(f"[pseudocomfy] ApplyIPAdaper\n\tenv_scene: '{env_scene[:20]}...'\n\tenv_style: '{env_style[:20]}...'\n\tenv_negative: '{env_negative[:20]}...'")
-        print(f"\twidth: {width}, height: {height}\n\tenv_cond_strength: {env_cond_strength}\n\tmat_cond_strength: {mat_cond_strength}\n\tipadapter_weight: {ipadapter_weight}")
+        print(f"\twidth, height: ({width},{height})\n\tenv_cond_strength: {env_cond_strength}\n\tmat_cond_strength: {mat_cond_strength}\n\tipadapter_weight: {ipadapter_weight}")
+        print(f"\tstart_at: {start_at}\n\tend_at: {end_at}")
         # Create a report string pairing each mat_txt with its corresponding mat_msk shape
         mat_report = "\n".join(
             f"\tmat[{i}]: {tuple(msk.shape)} '{txt[:20]}...'"
@@ -200,6 +214,9 @@ class ApplyIPAdaper:
         # main
         #
 
+        if start_at > end_at: 
+            raise ValueError("start_at must be less than or equal to end_at.")
+
         # add styles to each object prompt
         styled_mat_txts = [ (env_style if m is None or m == '' else m + ", " + env_style) for m in mat_txts]
         
@@ -224,8 +241,6 @@ class ApplyIPAdaper:
             if mat_imgs[i] is not None:
                 # model, ipadapter, image, weight, start_at, end_at, weight_type, attn_mask=None
                 weight_type = 'standard' # 'standard' or 'style transfer' or 'prompt_is_more_important'
-                start_at = 0.0
-                end_at = 1.0
                 model, _ = apply_ipadapter(model, ipadapter, mat_imgs[i], ipadapter_weight, start_at, end_at, weight_type, mat_msks[i])
 
         

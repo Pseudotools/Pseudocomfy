@@ -30,6 +30,7 @@ class PreviewEnvironmentalPrompts:
         env_scene (str): Deep-copied scene description.
         env_style (str): Deep-copied style description.
         env_negative (str): Deep-copied negative prompt.
+        env_all (str): Concatenated string of scene, style, and negative prompt.
     """
     @classmethod
     def INPUT_TYPES(s):
@@ -46,11 +47,10 @@ class PreviewEnvironmentalPrompts:
         }
 
     #INPUT_IS_LIST = False
-    RETURN_TYPES = ("STRING","STRING","STRING",)
-    RETURN_NAMES = ("env_scene","env_style","env_negative",)
+    RETURN_TYPES = ("STRING","STRING","STRING","STRING",)
+    RETURN_NAMES = ("env_scene","env_style","env_negative","env_all",)
     FUNCTION = "notify"
     OUTPUT_NODE = True
-    #OUTPUT_IS_LIST = (False, False, False,)
 
     CATEGORY = "Pseudocomfy/Utils"
 
@@ -77,9 +77,12 @@ class PreviewEnvironmentalPrompts:
                 pass
                 #print("[pseudocomfy] PreviewEnvironmentalPrompts\n\tError: extra_pnginfo is not a valid list or missing 'workflow' key")
 
+        parts = [s for s in [env_scene, env_style, env_negative] if s is not None and str(s).strip() != ""]
+        env_all = "; ".join(parts)
+
         return { #comfyui expects all values in ui to be wrapped in a list
             "ui": {"env_scene": [env_scene], "env_style": [env_style], "env_negative": [env_negative]}, 
-            "result": (env_scene, env_style, env_negative)
+            "result": (env_scene, env_style, env_negative, env_all,)
             }
    
 
@@ -88,13 +91,14 @@ class PreviewMaterialPrompts:
     Utility class for previewing material prompts
     Returns inputs unaltered.
     Inputs:
-        mat_txts (list of str): List of material prompt texts.
-        mat_imgs (list of tensor): List of image tensors as [1, H, W, 3] corresponding to the material prompts.
-        mat_msks (list of tensor): List of mask tensors as [1, H, W] corresponding to the material prompts.
+        mat_txts_lst (list of str): List of material prompt texts.
+        mat_imgs_lst (list of tensor): List of image tensors as [1, H, W, 3] corresponding to the material prompts.
+        mat_msks_lst (list of tensor): List of mask tensors as [1, H, W] corresponding to the material prompts.
     Outputs:
         mat_txts (list of str): Deep-copied list of material prompt texts.
         mat_imgs (list of tensor): Deep-copied list of image tensors.
         mat_msks (list of tensor): Deep-copied list of mask tensors.
+        mat_txts_all (str): Concatenated string of all material prompt texts.
     Additional Information:
         - The class encodes image and mask tensors to base64 for UI display.
         - All outputs are wrapped in lists to comply with ComfyUI requirements.
@@ -104,30 +108,38 @@ class PreviewMaterialPrompts:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "mat_txts": ("STRING", {"forceInput": True}),
-                "mat_imgs": ("IMAGE", {"forceInput": True}),
-                "mat_msks": ("IMAGE", {"forceInput": True}),
+                "mat_txts_lst": ("STRING", {"forceInput": True}),
+                "mat_imgs_lst": ("IMAGE", {"forceInput": True}),
+                "mat_msks_lst": ("IMAGE", {"forceInput": True}),
             }
         }
 
     INPUT_IS_LIST = True
     OUTPUT_IS_LIST = (True,True,True,)
-    RETURN_TYPES = ("STRING","IMAGE","IMAGE",)
-    RETURN_NAMES = ("mat_txts", "mat_imgs", "mat_msks",)
+    RETURN_TYPES = ("STRING","IMAGE","IMAGE","STRING",)
+    RETURN_NAMES = ("mat_txts", "mat_imgs", "mat_msks", "mat_txts_all",)
     FUNCTION = "notify"
     OUTPUT_NODE = True
 
     CATEGORY = "Pseudocomfy/Utils"
 
-    def notify(self, mat_txts, mat_imgs, mat_msks):
+    def notify(self, mat_txts_lst, mat_imgs_lst, mat_msks_lst):
         #print("[pseudocomfy] PreviewMaterialPrompts\n\t mat_msks is len: ", len(mat_msks))
+        
+        # all inputs are expected to be lists
+        mat_txts = mat_txts_lst 
+        mat_imgs = mat_imgs_lst
+        mat_msks = mat_msks_lst
         
         mat_imgs_b64 = [tensor_to_base64(t) for t in mat_imgs]
         mat_msks_b64 = [tensor_to_base64(t) for t in mat_msks]
         
+        parts = [s for s in mat_txts if s is not None and str(s).strip() != ""]
+        mat_txts_all = "; ".join(parts)
+
         return { #comfyui expects all values in ui to be wrapped in a list, since these are all lists we're fine.
             "ui": {"mat_txts": mat_txts, "mat_imgs": mat_imgs_b64, "mat_msks": mat_msks_b64}, 
-            "result": (copy.deepcopy(mat_txts),copy.deepcopy(mat_imgs),copy.deepcopy(mat_msks),)
+            "result": (copy.deepcopy(mat_txts),copy.deepcopy(mat_imgs),copy.deepcopy(mat_msks),mat_txts_all,)
             }
 
 
@@ -162,7 +174,7 @@ class ProcessImagePrompt:
     CATEGORY = "Pseudocomfy/Utils"
 
     def func(self, given_width, given_height, img, scale_by):
-        print(f"[pseudocomfy] ProcessImagePrompt\n\tgiven: {given_width}x{given_height}\n\tscale_by: {scale_by}\n\timg: {tuple(img.shape)}")
+        print(f"[pseudocomfy] ProcessImagePrompt\n\tgiven w,h: ({given_width},{given_height})\n\tscale_by: {scale_by}\n\timg: {tuple(img.shape)}")
         
         scaled_width = int(make_multiple_of_64(given_width * scale_by))
         scaled_height = int(make_multiple_of_64(given_height * scale_by))
@@ -263,3 +275,70 @@ class BlurMask:
         kernel = torch.exp(-0.5 * grid / sigma ** 2)
         kernel = kernel / kernel.sum()
         return kernel
+
+
+class PreviewStrings:
+    """
+    Utility class for previewing a single string in the ComfyUI UI.
+    Inputs:
+        string (str): The string(s) to preview.
+    Outputs:
+        none
+    """
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "strings": ("STRING", {"forceInput": True}),
+            },
+        }
+    INPUT_IS_LIST = True
+    RETURN_TYPES = ()
+    RETURN_NAMES = ()
+    FUNCTION = "notify"
+    OUTPUT_NODE = True
+    CATEGORY = "Pseudocomfy/Utils"
+
+    def notify(self, strings):
+        # Optionally handle extra_pnginfo/unique_id if needed
+        return {
+            "ui": {"strings": strings}
+        }
+
+
+class ConcatStrings:
+    """
+    Utility class for concatenating two strings with a selectable separator.
+    Inputs:
+        str_a (str): The first string.
+        str_b (str): The second string.
+        separator (str): The separator to use ("space", "comma", or "semicolon").
+    Outputs:
+        result (str): The concatenated string.
+    """
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "str_a": ("STRING", {"forceInput": True}),
+                "str_b": ("STRING", {"forceInput": True}),
+                "separator": (["space", "comma", "semicolon"],{}),
+            },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("str",)
+    FUNCTION = "concat"
+    CATEGORY = "Pseudocomfy/Utils"
+
+    def concat(self, str_a, str_b, separator):
+        sep_map = {
+            "space": " ",
+            "comma": ", ",
+            "semicolon": "; "
+        }
+        sep = sep_map.get(separator, " ")
+        result = f"{str_a}{sep}{str_b}"
+        return (result,)
+
+
