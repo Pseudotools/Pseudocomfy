@@ -158,16 +158,24 @@ class UnpackModelSnapshot:
                         False,                       
                     )
 
-
-
     FUNCTION = "process_json"
-
     CATEGORY = "Pseudocomfy/Processors"
 
     def process_json(self, json_data):
-        print(f"[pseudocomfy] UnpackModelSnapshot\n\tjson_data keys: {list(json_data.keys())}")
+        expected_keys = [
+            'pseudorandom_spatial_package_version',
+            'map_semantic',
+            'pmts_environment',
+            'width',
+            'height',
+            'img_depth'
+        ]
+        missing_keys = [k for k in expected_keys if k not in json_data]
+        if missing_keys: raise KeyError(f"Missing required keys in json_data: {missing_keys}")      
 
-        # TODO: check json_data[pseudorandom_spatial_package_version] agains current min_version (0.0 at time of writing)
+        package_version = json_data['pseudorandom_spatial_package_version']
+        print(f"[pseudocomfy] UnpackModelSnapshot\t spatial_package_version: {package_version}")
+        # TODO: check package_version against current min_version (0.0 at time of writing)
 
         map_semantic = json_data['map_semantic']
         mat_txts = [entry['pmt_txt'] for entry in map_semantic]
@@ -210,9 +218,9 @@ class UnpackModelSnapshot:
        
         
         print(f"\tgiven w,h: ({width}, {height})")
-        print(f"\tdepth_tensor shape: {depth_tensor.shape} ([1, H, W, 3] expected)")
+        print(f"\tdepth_tensor shape: {tuple(depth_tensor.shape)} ([1, H, W, 3] expected)")
         print(f"\tmat txts/imgs/msks lengths: {len(mat_txts)},{len(mat_imgs)},{len(mat_msks)} (all should be equal)")
-        if len(mat_msks) > 1: print(f"\tmat_msks shape:{mat_msks[0].shape} ([1, H, W] expected)")
+        if len(mat_msks) > 1: print(f"\tmat_msks shape:{tuple(mat_msks[0].shape)} ([1, H, W] expected)")
         '''
         for i, mask in enumerate(mat_msks):
             print(f"mat_msks[{i}] shape:", mask.shape) # we expect [1, H, W]

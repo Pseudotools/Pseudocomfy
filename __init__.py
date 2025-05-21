@@ -1,6 +1,7 @@
 from .node_loaders import *
 from .node_processors import *
 from .node_utils import *
+from .node_ipadapter_loader import *
 from . import api
 
 
@@ -27,6 +28,7 @@ NODE_CLASS_MAPPINGS = {
 
     "ApplyDenseDiffusion": ApplyDenseDiffusion,
     "ApplyIPAdaper": ApplyIPAdaper,
+    "IPAdapterUnifiedLoaderClone": IPAdapterUnifiedLoaderClone,
 
     "PreviewEnvironmentalPrompts": PreviewEnvironmentalPrompts,
     "PreviewMaterialPrompts": PreviewMaterialPrompts,
@@ -43,6 +45,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
     "ApplyDenseDiffusion": "Apply Dense Diffusion Conditioning",
     "ApplyIPAdaper": "Apply IPAdaper Conditioning",
+    "IPAdapterUnifiedLoaderClone": "IPAdapter Unified Loader (Clone)",
 
     "PreviewEnvironmentalPrompts": "Preview Environmental Prompt Guidence", 
     "PreviewMaterialPrompts": "Preview Material Prompt Guidence",  

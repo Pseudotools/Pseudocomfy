@@ -20,6 +20,10 @@ from einops.layers.torch import Rearrange
 import torch.nn.functional as F
 from comfy.ldm.modules.attention import optimized_attention
 
+
+
+
+
 '''
 CrossAttentionPatch.py:
 '''
@@ -1170,3 +1174,4 @@ def apply_ipadapter(model, ipadapter, image, weight, start_at, end_at, weight_ty
             raise Exception("CLIPVision model not present in the pipeline. Please load the models with the IPAdapterUnifiedLoader node.")
 
         return ipadapter_execute(model.clone(), ipadapter['ipadapter']['model'], ipadapter['clipvision']['model'], **ipa_args)
+

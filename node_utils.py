@@ -162,7 +162,7 @@ class ProcessImagePrompt:
     CATEGORY = "Pseudocomfy/Utils"
 
     def func(self, given_width, given_height, img, scale_by):
-        print(f"[pseudocomfy] ProcessImagePrompt\n\tgiven: {given_width}x{given_height}\n\tscale_by: {scale_by}\n\timg: {img.shape}")
+        print(f"[pseudocomfy] ProcessImagePrompt\n\tgiven: {given_width}x{given_height}\n\tscale_by: {scale_by}\n\timg: {tuple(img.shape)}")
         
         scaled_width = int(make_multiple_of_64(given_width * scale_by))
         scaled_height = int(make_multiple_of_64(given_height * scale_by))
@@ -225,6 +225,8 @@ class BlurMask:
         Expects (1, H, W)
         may also work with (B, H, W, C), or (B, C, H, W) tensors (untested).
         """
+        print(f"[pseudocomfy] BlurMask blur_radius:{blur_radius} sigma:{sigma} msk shape:{tuple(msk.shape)}")
+
         if blur_radius == 0:
             return (msk,)
 
@@ -254,7 +256,7 @@ class BlurMask:
             blurred = blurred.permute(0, 2, 3, 1)  # (B, H, W, C)
         return (blurred,)
     
-    def gaussian_kernel(kernel_size, sigma, device):
+    def gaussian_kernel(self, kernel_size, sigma, device):
         """Create a 2D Gaussian kernel."""
         coords = torch.arange(kernel_size, dtype=torch.float32, device=device) - (kernel_size - 1) / 2
         grid = coords.unsqueeze(0) ** 2 + coords.unsqueeze(1) ** 2
