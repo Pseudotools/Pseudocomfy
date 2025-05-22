@@ -51,7 +51,7 @@ class ApplyDenseDiffusionSDXL:
 
     FUNCTION = "func"
 
-    CATEGORY = "Pseudocomfy/Processors"
+    CATEGORY = "Pseudocomfy/Conditioning"
 
     def func(self, model, clip, mat_txts_lst, mat_msks_lst, env_scene, env_style, env_negative, width, height):
         # material inputs are expected to be lists
@@ -142,7 +142,7 @@ class ApplyIPAdaperSDXL:
     OUTPUT_IS_LIST = (False, False, False,)
 
     FUNCTION = "func"
-    CATEGORY = "Pseudocomfy/Processors"
+    CATEGORY = "Pseudocomfy/Conditioning"
 
     def func(self, model, clip, ipadapter, mat_txts_lst, mat_imgs_lst, mat_msks_lst, env_scene, env_style, env_negative, width, height, env_cond_strength, mat_cond_strength, ipadapter_weight, start_at, end_at):
         # material inputs are expected to be lists

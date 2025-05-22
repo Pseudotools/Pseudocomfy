@@ -1,7 +1,7 @@
 import { app } from "../../../scripts/app.js";
 import { ComfyWidgets } from "../../../scripts/widgets.js";
 
-const _ID = "PreviewMaterialPrompts";
+const _ID = "ProcessMaterialPrompts";
 
 
 app.registerExtension({
@@ -80,8 +80,14 @@ app.registerExtension({
                         promptWidgetEl.parentNode.replaceChild(newPromptWidget, promptWidgetEl);
                         promptWidgetEl = newPromptWidget;
                     } else {
-                        // Just update value
+                        // Always update value and image if present
                         promptWidgetEl.value = matTxts.length > 0 ? matTxts[state.idx] : "";
+                        // If side-by-side, also update the image
+                        if (isSideBySide && promptWidgetEl.children.length > 1) {
+                            const imgDiv = promptWidgetEl.children[1];
+                            const img = imgDiv.querySelector("img");
+                            if (img) img.src = hasImg ? matImgs[state.idx] : "";
+                        }
                     }
                 }
             };
