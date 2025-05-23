@@ -87,8 +87,6 @@ class ProcessMaterialPrompts:
         mat_imgs (list of tensor): Deep-copied list of image tensors.
         mat_msks (list of tensor): Deep-copied list of mask tensors.
         mat_txts_all (str): Concatenated string of all material prompt texts.
-        mat_msks_concat (tensor): Concatenated (maximum value of mat_msks_lst) mask tensor as [1, H, W].
-        mat_msks_invert (tensor): Inverted (inversion of mat_msks_concat) mask tensor as [1, H, W].
     Additional Information:
         - The class encodes image and mask tensors to base64 for UI display.
         - All outputs are wrapped in lists to comply with ComfyUI requirements.
@@ -100,14 +98,14 @@ class ProcessMaterialPrompts:
             "required": {
                 "mat_txts_lst": ("STRING", {"forceInput": True}),
                 "mat_imgs_lst": ("IMAGE", {"forceInput": True}),
-                "mat_msks_lst": ("IMAGE", {"forceInput": True}),
+                "mat_msks_lst": ("MASK", {"forceInput": True}),
             }
         }
 
     INPUT_IS_LIST = True
-    OUTPUT_IS_LIST = (True,True,True,False,False,False)
-    RETURN_TYPES = ("STRING", "IMAGE", "IMAGE", "STRING", "IMAGE", "IMAGE",)
-    RETURN_NAMES = ("mat_txts", "mat_imgs", "mat_msks", "mat_txts_all", "mat_msks_concat", "mat_msks_invert",)
+    OUTPUT_IS_LIST = (True,True,True,False,)
+    RETURN_TYPES = ("STRING", "IMAGE", "MASK", "STRING",)
+    RETURN_NAMES = ("mat_txts", "mat_imgs", "mat_msks", "mat_txts_all",)
     FUNCTION = "func"
     OUTPUT_NODE = True
 
@@ -129,23 +127,6 @@ class ProcessMaterialPrompts:
         mat_txts_all = "; ".join(parts)
         #print(f"\tmat_txts_all: '{mat_txts_all}'", parts)
 
-        # concatenate all masks
-        def concat_masks(*masks):
-            """
-            Takes a series of mask tensors of shape [1, H, W] and returns a tensor [1, H, W]
-            containing the maximum value for each pixel across all masks.
-            """
-            # Stack along a new dimension and take max
-            stacked = torch.stack(masks, dim=0)  # shape: [N, 1, H, W]
-            result, _ = torch.max(stacked, dim=0)  # shape: [1, H, W]
-            return result
-        
-        mat_msks_concat = concat_masks(*mat_msks)
-
-        # invert the mask
-        mat_msks_invert = 1.0 - mat_msks_concat
-
-
         return { #comfyui expects all values in ui to be wrapped in a list, since these are all lists we're fine.
             "ui": {"mat_txts": mat_txts, "mat_imgs": mat_imgs_b64, "mat_msks": mat_msks_b64}, 
             "result": (
@@ -153,8 +134,6 @@ class ProcessMaterialPrompts:
                     copy.deepcopy(mat_imgs),
                     copy.deepcopy(mat_msks),
                     mat_txts_all,
-                    mat_msks_concat,
-                    mat_msks_invert,
                 )
             }
 

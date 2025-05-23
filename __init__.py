@@ -41,7 +41,13 @@ NODE_CLASS_MAPPINGS = {
     "ProcessImagePrompt": ProcessImagePrompt,
 
     # utils
-    "BlurMask": BlurMask,
+    "MaskBlur": MaskBlur,
+    "MaskClamp": MaskClamp,
+    "MaskRemap": MaskRemap,
+    "MaskInvert": MaskInvert,
+    "MaskReshape": MaskReshape,
+    "MaskAggregate": MaskAggregate,
+
     "PreviewStrings": PreviewStrings,
     "ConcatStrings": ConcatStrings,
 }
@@ -66,7 +72,13 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ProcessImagePrompt": "Process Image Prompt", 
 
     # utils
-    "BlurMask": "Blur Mask",
+    "MaskBlur": "Blur Mask",
+    "MaskClamp": "Clamp Mask",
+    "MaskRemap": "Remap Mask",
+    "MaskInvert": "Invert Mask",
+    "MaskReshape": "Reshape Mask",
+    "MaskAggregate": "Aggregate Masks",
+
     "PreviewStrings": "Preview Strings",
     "ConcatStrings": "Concat Strings",
 }

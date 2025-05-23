@@ -29,7 +29,7 @@ class SaveImageWithEmbeddedMasks:
                 "filename_prefix": ("STRING", {"default": "pseudocomfy", "tooltip": "The prefix for the file to save. This may include formatting information such as %date:yyyy-MM-dd% or %Empty Latent Image.width% to include values from nodes."})
             },
             "optional": {   
-                "msks": ("IMAGE", {"tooltip": "The masks to embed in the image."}),
+                "msks": ("MASK", {"tooltip": "The masks to embed in the image."}), # List of mask tensors ([1, H, W])
             },      
             "hidden": {
                 "prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"

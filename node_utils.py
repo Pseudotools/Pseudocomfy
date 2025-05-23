@@ -16,7 +16,7 @@ from PIL import Image
 
 
 
-class BlurMask:
+class MaskBlur:
     """
     Utility class for applying a Gaussian blur to image masks.
     Inputs:
@@ -30,31 +30,31 @@ class BlurMask:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "msk": ("IMAGE",),
+                "msk": ("MASK",),
                 "blur_radius": ("INT", {
                     "default": 1,
                     "min": 1,
-                    "max": 31,
+                    "max": 51,
                     "step": 1
                 }),
                 "sigma": ("FLOAT", {
                     "default": 1.0,
                     "min": 0.1,
-                    "max": 10.0,
+                    "max": 20.0,
                     "step": 0.1
                 }),
+                "invert": ("BOOLEAN", {"default": False}),
             },
         }
 
-    RETURN_TYPES = ("IMAGE",)
+    RETURN_TYPES = ("MASK",)
     RETURN_NAMES = ("msk",)
     FUNCTION = "blur"
     CATEGORY = "Pseudocomfy/Utils"
 
-    def blur(self, msk: torch.Tensor, blur_radius: int, sigma: float):
+    def blur(self, msk: torch.Tensor, blur_radius: int, sigma: float, invert):
         """
-        Expects (1, H, W)
-        may also work with (B, H, W, C), or (B, C, H, W) tensors (untested).
+        Expects (1, H, W) or (B, H, W)
         """
         print(f"[pseudocomfy] BlurMask blur_radius:{blur_radius} sigma:{sigma} msk shape:{tuple(msk.shape)}")
 
@@ -62,30 +62,33 @@ class BlurMask:
             return (msk,)
 
         device = msk.device
-        # Handle (1, H, W) grayscale, (B, H, W, C) color, or (B, C, H, W)
-        if msk.ndim == 3:  # (1, H, W) or (B, H, W)
-            msk = msk.unsqueeze(-1)  # (1, H, W, 1)
-        if msk.ndim == 4 and msk.shape[-1] <= 4:  # (B, H, W, C)
-            msk = msk.permute(0, 3, 1, 2)  # (B, C, H, W)
-        # Now image is (B, C, H, W)
-        B, C, H, W = msk.shape
+
+        # Ensure batch dimension
+        if msk.ndim == 2:
+            msk = msk.unsqueeze(0)  # (1, H, W)
+
+        B, H, W = msk.shape
+
+        # Add channel dimension for conv2d
+        msk = msk.unsqueeze(1)  # (B, 1, H, W)
 
         kernel_size = blur_radius * 2 + 1
         kernel = self.gaussian_kernel(kernel_size, sigma, device=device)
-        kernel = kernel.expand(C, 1, kernel_size, kernel_size)
+        kernel = kernel.expand(1, 1, kernel_size, kernel_size)
 
         pad = blur_radius
         padded_image = F.pad(msk, (pad, pad, pad, pad), mode='reflect')
-        blurred = F.conv2d(padded_image, kernel, padding=0, groups=C)
-        # Remove extra padding
-        blurred = blurred[:, :, pad:-pad, pad:-pad]
+        blurred = F.conv2d(padded_image, kernel, padding=0, groups=1)
+        blurred = blurred[:, :, pad:-pad, pad:-pad]  # Remove extra padding
 
-        # Return to (B, H, W, C) if input was that, or (1, H, W) if grayscale
-        if blurred.shape[1] == 1:
-            blurred = blurred.permute(0, 2, 3, 1).squeeze(-1)  # (B, H, W)
-        else:
-            blurred = blurred.permute(0, 2, 3, 1)  # (B, H, W, C)
-        return (blurred,)
+        # Remove channel dimension
+        result = blurred.squeeze(1)  # (B, H, W)
+
+        if invert:
+            result = 1.0 - result
+            result = torch.clamp(result, 0.0, 1.0)        
+
+        return (result,)
     
     def gaussian_kernel(self, kernel_size, sigma, device):
         """Create a 2D Gaussian kernel."""
@@ -94,6 +97,307 @@ class BlurMask:
         kernel = torch.exp(-0.5 * grid / sigma ** 2)
         kernel = kernel / kernel.sum()
         return kernel
+
+class MaskClamp:
+    """
+    Utility class for clamping mask values to a specified range.
+    Inputs:
+        msk (tensor): The input mask tensor. Expected shape is [1, H, W] or [B, H, W], values in [0, 1].
+        min_val (float): Minimum value to clamp to (default: 0.0, min: 0.0, max: 1.0, step: 0.01).
+        max_val (float): Maximum value to clamp to (default: 1.0, min: 0.0, max: 1.0, step: 0.01).
+    Outputs:
+        msk (tensor): The clamped mask tensor, same shape as input.
+    """
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "msk": ("MASK",),
+                "min_val": ("FLOAT", {
+                    "default": 0.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01
+                }),
+                "max_val": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01
+                }),
+            },
+            "optional": {
+            }
+        }
+
+    RETURN_TYPES = ("MASK",)
+    RETURN_NAMES = ("msk",)
+    FUNCTION = "clamp"
+    CATEGORY = "Pseudocomfy/Utils"
+
+    def clamp(self, msk: torch.Tensor, min_val: float, max_val: float):
+        """
+        Clamp mask values to [min_val, max_val].
+        """
+        print(f"[pseudocomfy] ClampMask")
+        print(f"\tmsk shape:{tuple(msk.shape)}")
+        print(f"\tclamping mask of ({msk.min():.3f} -> {msk.max():.3f}) to ({min_val:.3f} -> {max_val:.3f})")
+        clamped = torch.clamp(msk, min=min_val, max=max_val)
+        return (clamped,)
+
+class MaskRemap:
+    """
+    Utility class for remapping mask values from a source range to a target range.
+    Inputs:
+        msk (tensor): The input mask tensor. Expected shape is [1, H, W] or [B, H, W], values in [0, 1].
+        src_min (float, optional): Source minimum value to remap from. If not set, uses mask min.
+        src_max (float, optional): Source maximum value to remap from. If not set, uses mask max.
+        tgt_min (float, optional): Target minimum value to remap to. If not set, uses 0.0.
+        tgt_max (float, optional): Target maximum value to remap to. If not set, uses 1.0.
+    Outputs:
+        msk (tensor): The remapped mask tensor, same shape as input.
+    """
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "msk": ("MASK",),
+            },
+            "optional": {
+                "src_min": ("FLOAT", {"forceInput": True}), # force input b/c can't have widget for None
+                "src_max": ("FLOAT", {"forceInput": True}), # force input b/c can't have widget for None
+                "tgt_min": ("FLOAT", {
+                    "default": 0.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01
+                }),
+                "tgt_max": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("MASK",)
+    RETURN_NAMES = ("msk",)
+    FUNCTION = "remap"
+    CATEGORY = "Pseudocomfy/Utils"
+
+    def remap(self, msk: torch.Tensor, src_min: float = None, src_max: float = None, tgt_min: float = 0.0, tgt_max: float = 1.0):
+        """
+        Remap mask values from [src_min, src_max] to [tgt_min, tgt_max].
+        """
+        mask_min = float(msk.min())
+        mask_max = float(msk.max())
+        from_min = src_min if src_min is not None else mask_min
+        from_max = src_max if src_max is not None else mask_max
+        to_min = tgt_min
+        to_max = tgt_max
+
+        print(f"[pseudocomfy] RemapMask")
+        print(f"\tmsk shape:{tuple(msk.shape)}")
+        print(f"\tremapping mask of ({mask_min:.3f} -> {mask_max:.3f}) from ({from_min:.3f} -> {from_max:.3f}) to ({to_min:.3f} -> {to_max:.3f})")
+
+        # Avoid division by zero
+        if from_max - from_min == 0:
+            remapped = torch.full_like(msk, to_min)
+        else:
+            norm = (msk - from_min) / (from_max - from_min)
+            remapped = norm * (to_max - to_min) + to_min
+            remapped = torch.clamp(remapped, min(min(to_min, to_max), 0.0), max(max(to_min, to_max), 1.0))
+        return (remapped,)
+
+class MaskInvert:
+    """
+    Utility class for inverting mask values (1 - mask).
+    Inputs:
+        msk (tensor): The input mask tensor. Expected shape is [1, H, W] or [B, H, W], values in [0, 1].
+    Outputs:
+        msk (tensor): The inverted mask tensor, same shape as input.
+    """
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "msk": ("MASK",),
+            }
+        }
+
+    RETURN_TYPES = ("MASK",)
+    RETURN_NAMES = ("msk",)
+    FUNCTION = "invert"
+    CATEGORY = "Pseudocomfy/Utils"
+
+    def invert(self, msk: torch.Tensor):
+        """
+        Invert mask values (1 - mask).
+        """
+        mask_min = float(msk.min())
+        mask_max = float(msk.max())
+        print(f"[pseudocomfy] MaskInvert")
+        print(f"\tmsk shape:{tuple(msk.shape)}")
+        print(f"\tinverting mask of ({mask_min:.3f} -> {mask_max:.3f}) to ({1-mask_max:.3f} -> {1-mask_min:.3f})")
+        inverted = 1.0 - msk
+        inverted = torch.clamp(inverted, 0.0, 1.0)
+        return (inverted,)
+
+class MaskReshape:
+    """
+    Utility class for morphological operations on masks: Erode (shrink) and Dilate (expand) white regions.
+    Inputs:
+        msk (tensor): The input mask tensor. Expected shape is [1, H, W] or [B, H, W], values in [0, 1].
+        operation (str): "erode" or "dilate".
+        kernel_size (int): Size of the square structuring element (default: 3, min: 1, max: 31, step: 2).
+        iterations (int): Number of times to apply the operation (default: 1, min: 1, max: 10, step: 1).
+    Outputs:
+        msk (tensor): The processed mask tensor, same shape as input.
+    """
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "msk": ("MASK",),
+                "operation": (["erode (shrink white areas)", "dilate (grow white areas)"], {}),
+                "kernel_size": ("INT", {
+                    "default": 3,
+                    "min": 1,
+                    "max": 31,
+                    "step": 2
+                }),
+                "iterations": ("INT", {
+                    "default": 1,
+                    "min": 1,
+                    "max": 10,
+                    "step": 1
+                }),
+                "invert": ("BOOLEAN", {"default": False}),
+            }
+        }
+
+    RETURN_TYPES = ("MASK",)
+    RETURN_NAMES = ("msk",)
+    FUNCTION = "morph"
+    CATEGORY = "Pseudocomfy/Utils"
+
+    def morph(self, msk: torch.Tensor, operation: str, kernel_size: int, iterations: int, invert):
+        """
+        Apply morphological operation to mask.
+        """
+        print(f"[pseudocomfy] MaskMorphology")
+        print(f"\tmsk shape:{tuple(msk.shape)}")
+        print(f"\toperation: {operation}, kernel_size: {kernel_size}, iterations: {iterations}")
+
+        # Ensure batch dimension
+        if msk.ndim == 2:
+            msk = msk.unsqueeze(0)  # (1, H, W)
+        B, H, W = msk.shape
+
+        # Add channel dimension for conv2d
+        msk = msk.unsqueeze(1)  # (B, 1, H, W)
+
+        # Create structuring element (kernel)
+        kernel = torch.ones((1, 1, kernel_size, kernel_size), dtype=msk.dtype, device=msk.device)
+
+        result = msk
+        for _ in range(iterations):
+            if operation[:3] == "ero":
+                result = torch.nn.functional.max_pool2d(
+                    1.0 - result, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
+                )
+                result = 1.0 - result
+            elif operation[:3] == "dil":
+                result = torch.nn.functional.max_pool2d(
+                    result, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
+                )
+            else:
+                raise ValueError(f"Unknown operation: {operation}")
+
+        # Remove channel dimension
+        result = result.squeeze(1)  # (B, H, W)
+        
+        if invert:
+            result = 1.0 - result
+            result = torch.clamp(result, 0.0, 1.0)
+
+        print(f"\tresult range: ({result.min():.3f} -> {result.max():.3f})")
+        return (result,)
+
+
+class MaskAggregate:
+    """
+    Utility class for combining a list of masks into a single mask using various arithmetic operations.
+    Inputs:
+        msks (list[tensor]): List of mask tensors, each [1, H, W] or [B, H, W], values in [0, 1].
+        operation (str): Operation to perform. One of:
+            - "sum_clamped": Sum all masks, clamp to [0, 1].
+            - "sum_normalized": Sum all masks, then normalize result to [0, 1].
+            - "average": Pixelwise mean of all masks.
+            - "max": Pixelwise max of all masks.
+            - "min": Pixelwise min of all masks.
+        invert (bool): If True, invert the result mask (1 - mask).
+    Outputs:
+        msk (tensor): The combined mask tensor, same shape as input.
+    """
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "msks": ("MASK", {"forceInput": True, "isList": True}),
+                "operation": (["sum_clamped", "sum_normalized", "average", "max", "min"], {}),
+                "invert": ("BOOLEAN", {"default": False}),
+            }
+        }
+
+    INPUT_IS_LIST = True
+    RETURN_TYPES = ("MASK",)
+    RETURN_NAMES = ("msk",)
+    FUNCTION = "combine"
+    CATEGORY = "Pseudocomfy/Utils"
+
+    def combine(self, msks, operation, invert):
+        # given that INPUT_IS_LIST, msks is a list of masks that should be aggregated
+        # if inputs that are meant to be singletons are a list, use the first element
+        if isinstance(operation, list) and len(operation)>0: operation = operation[0]
+        if isinstance(invert, list) and len(invert)>0: invert = invert[0]
+
+        # Stack masks to shape (N, H, W) or (N, 1, H, W)
+        msks = [m.float() for m in msks]
+        stack = torch.stack(msks, dim=0)
+        print(f"[pseudocomfy] CombineMasks")
+        print(f"\toperation: {operation}")
+        print(f"\tinput count: {len(msks)}")
+        print(f"\tstack shape: {tuple(stack.shape)}")
+
+        if operation == "sum_clamped":
+            result = stack.sum(dim=0)
+            result = torch.clamp(result, 0.0, 1.0)
+        elif operation == "sum_normalized":
+            result = stack.sum(dim=0)
+            minv, maxv = result.min(), result.max()
+            if maxv - minv == 0:
+                result = torch.zeros_like(result)
+            else:
+                result = (result - minv) / (maxv - minv)
+        elif operation == "average":
+            result = stack.mean(dim=0)
+        elif operation == "max":
+            result = stack.max(dim=0).values
+        elif operation == "min":
+            result = stack.min(dim=0).values
+        else:
+            raise ValueError(f"Unknown operation: {operation}")
+
+        if invert:
+            result = 1.0 - result
+            result = torch.clamp(result, 0.0, 1.0)
+
+        print(f"\tresult shape: {tuple(result.shape)}")
+        print(f"\tresult range: ({result.min():.3f} -> {result.max():.3f})")
+        return (result,)
+
 
 
 class PreviewStrings:

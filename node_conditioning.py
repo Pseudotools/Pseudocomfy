@@ -34,7 +34,7 @@ class ApplyDenseDiffusionSDXL:
                 "model": ("MODEL", {"forceInput": True}),
                 "clip": ("CLIP", {"forceInput": True}),
                 "mat_txts_lst": ("STRING", {"forceInput": True}),
-                "mat_msks_lst": ("IMAGE", {"forceInput": True}),
+                "mat_msks_lst": ("MASK", {"forceInput": True}),
                 "env_scene": ("STRING", {"forceInput": True}),
                 "env_style": ("STRING", {"forceInput": True}),
                 "env_negative": ("STRING", {"forceInput": True}),
@@ -121,7 +121,7 @@ class ApplyIPAdaperSDXL:
                 "ipadapter": ("IPADAPTER",),
                 "mat_txts_lst": ("STRING", {"forceInput": True}), # we expect a list of strings
                 "mat_imgs_lst": ("IMAGE", {"forceInput": True}), # we expect a list of images
-                "mat_msks_lst": ("IMAGE", {"forceInput": True}), # we expect a list of masks
+                "mat_msks_lst": ("MASK", {"forceInput": True}), # we expect a list of masks
                 "env_scene": ("STRING", {"forceInput": True}),
                 "env_style": ("STRING", {"forceInput": True}),
                 "env_negative": ("STRING", {"forceInput": True}),

@@ -119,7 +119,7 @@ class UnpackModelSnapshot:
     RETURN_TYPES = (
                         "STRING",
                         "IMAGE",
-                        "IMAGE",
+                        "MASK",
                         "STRING",
                         "STRING",
                         "STRING",
