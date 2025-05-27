@@ -24,61 +24,67 @@ __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
 NODE_CLASS_MAPPINGS = {
 
     # loaders
-    "LoadModelSnapshot": LoadModelSnapshot,
-    "UnpackModelSnapshot": UnpackModelSnapshot,
+    "PseudoLoadModelSnapshot": PseudoLoadModelSnapshot,
+    "PseudoUnpackModelSnapshot": PseudoUnpackModelSnapshot,
 
     # io
-    "SaveImageWithEmbeddedMasks": SaveImageWithEmbeddedMasks,
+    "PseudoSaveImageWithEmbeddedMasks": PseudoSaveImageWithEmbeddedMasks,
 
     # conditioning
-    "ApplyDenseDiffusionSDXL": ApplyDenseDiffusionSDXL,
-    "ApplyIPAdaperSDXL": ApplyIPAdaperSDXL,
-    "IPAdapterUnifiedLoaderClone": IPAdapterUnifiedLoaderClone,
+    "PseudoApplyDenseDiffusionSDXL": PseudoApplyDenseDiffusionSDXL,
+    "PseudoApplyIPAdaperSDXL": PseudoApplyIPAdaperSDXL,
+    "PseudoIPAdapterUnifiedLoaderClone": PseudoIPAdapterUnifiedLoaderClone,
 
     # processing
-    "ProcessEnvironmentalPrompts": ProcessEnvironmentalPrompts,
-    "ProcessMaterialPrompts": ProcessMaterialPrompts,
-    "ProcessImagePrompt": ProcessImagePrompt,
+    "PseudoProcessEnvironmentalPrompts": PseudoProcessEnvironmentalPrompts,
+    "PseudoProcessMaterialPrompts": PseudoProcessMaterialPrompts,
+    "PseudoProcessImagePrompt": PseudoProcessImagePrompt,
 
     # utils
-    "MaskBlur": MaskBlur,
-    "MaskClamp": MaskClamp,
-    "MaskRemap": MaskRemap,
-    "MaskInvert": MaskInvert,
-    "MaskReshape": MaskReshape,
-    "MaskAggregate": MaskAggregate,
+    "PseudoMaskBlur": PseudoMaskBlur,
+    "PseudoMaskClamp": PseudoMaskClamp,
+    "PseudoMaskRemap": PseudoMaskRemap,
+    "PseudoMaskInvert": PseudoMaskInvert,
+    "PseudoMaskReshape": PseudoMaskReshape,
+    "PseudoMaskAggregate": PseudoMaskAggregate,
 
-    "PreviewStrings": PreviewStrings,
-    "ConcatStrings": ConcatStrings,
+    "PseudoPreviewStrings": PseudoPreviewStrings,
+    "PseudoConcatStrings": PseudoConcatStrings,
+
+    "PseudoRemapFloat": PseudoRemapFloat,
+    "PseudoFloatToInt": PseudoFloatToInt,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
 
     # loaders
-    "LoadModelSnapshot": "Load Model Snapshot",
-    "UnpackModelSnapshot": "Unpack Model Snapshot",
+    "PseudoLoadModelSnapshot": "Load Model Snapshot",
+    "PseudoUnpackModelSnapshot": "Unpack Model Snapshot",
 
     # io
-    "SaveImageWithEmbeddedMasks": "Save Image with Embedded Masks",
+    "PseudoSaveImageWithEmbeddedMasks": "Save Image with Embedded Masks",
 
     # conditioning
-    "ApplyDenseDiffusionSDXL": "Apply Dense Diffusion Conditioning (SDXL)",
-    "ApplyIPAdaperSDXL": "Apply IPAdaper Conditioning (SDXL)",
-    "IPAdapterUnifiedLoaderClone": "IPAdapter Unified Loader (Clone)",
+    "PseudoApplyDenseDiffusionSDXL": "Apply Dense Diffusion Conditioning (SDXL)",
+    "PseudoApplyIPAdaperSDXL": "Apply IPAdaper Conditioning (SDXL)",
+    "PseudoIPAdapterUnifiedLoaderClone": "IPAdapter Unified Loader (Clone)",
 
     # processing
-    "ProcessEnvironmentalPrompts": "Process Environmental Prompt Guidence", 
-    "ProcessMaterialPrompts": "Process Material Prompt Guidence",  
-    "ProcessImagePrompt": "Process Image Prompt", 
+    "PseudoProcessEnvironmentalPrompts": "Process Environmental Prompt Guidence", 
+    "PseudoProcessMaterialPrompts": "Process Material Prompt Guidence",  
+    "PseudoProcessImagePrompt": "Process Image Prompt", 
 
     # utils
-    "MaskBlur": "Blur Mask",
-    "MaskClamp": "Clamp Mask",
-    "MaskRemap": "Remap Mask",
-    "MaskInvert": "Invert Mask",
-    "MaskReshape": "Reshape Mask",
-    "MaskAggregate": "Aggregate Masks",
+    "PseudoMaskBlur": "Blur Mask",
+    "PseudoMaskClamp": "Clamp Mask",
+    "PseudoMaskRemap": "Remap Mask",
+    "PseudoMaskInvert": "Invert Mask",
+    "PseudoMaskReshape": "Reshape Mask",
+    "PseudoMaskAggregate": "Aggregate Masks",
 
-    "PreviewStrings": "Preview Strings",
-    "ConcatStrings": "Concat Strings",
+    "PseudoPreviewStrings": "Preview Strings",
+    "PseudoConcatStrings": "Concat Strings",
+
+    "PseudoRemapFloat": "Remap Float",
+    "PseudoFloatToInt": "Float to Int",
 }

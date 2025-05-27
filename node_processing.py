@@ -6,7 +6,7 @@ from .helpers.imgutil import tensor_to_base64
 from .helpers.imgutil import make_multiple_of_64, scale_tensor_image
 
 
-class ProcessEnvironmentalPrompts:
+class PseudoProcessEnvironmentalPrompts:
     """
     Utility class for previewing environmental prompts.
     Returns environmental prompt inputs unaltered.
@@ -74,7 +74,7 @@ class ProcessEnvironmentalPrompts:
             }
    
 
-class ProcessMaterialPrompts:
+class PseudoProcessMaterialPrompts:
     """
     Utility class for previewing material prompts
     Returns inputs unaltered.
@@ -138,7 +138,7 @@ class ProcessMaterialPrompts:
             }
 
 
-class ProcessImagePrompt:
+class PseudoProcessImagePrompt:
     """
     Utility class for scaling images and returning both the scaled image and relevant metadata.
     Inputs:

@@ -3,7 +3,7 @@ import { ComfyWidgets } from "../../../scripts/widgets.js";
 
 // Displays a string (or list of strings) on a node
 
-const _ID = "PreviewStrings";
+const _ID = "PseudoPreviewStrings";
 
 app.registerExtension({
     name: 'pseudocomfy.' + _ID,

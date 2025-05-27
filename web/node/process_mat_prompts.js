@@ -1,7 +1,7 @@
 import { app } from "../../../scripts/app.js";
 import { ComfyWidgets } from "../../../scripts/widgets.js";
 
-const _ID = "ProcessMaterialPrompts";
+const _ID = "PseudoProcessMaterialPrompts";
 
 
 app.registerExtension({

@@ -3,7 +3,7 @@ import { ComfyWidgets } from "../../../scripts/widgets.js";
 
 // Displays input text on a node
 
-const _ID = "ProcessEnvironmentalPrompts";
+const _ID = "PseudoProcessEnvironmentalPrompts";
 
 app.registerExtension({
     name: 'pseudocomfy.' + _ID,

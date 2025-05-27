@@ -19,7 +19,7 @@ Adapted from the original code by Matteo Spinelli ("Matt3o/Cubiq")**
 """
 
 
-class IPAdapterUnifiedLoaderClone:
+class PseudoIPAdapterUnifiedLoaderClone:
     def __init__(self):
         self.lora = None
         self.clipvision = { "file": None, "model": None }

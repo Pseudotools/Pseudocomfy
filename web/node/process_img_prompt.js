@@ -1,6 +1,6 @@
 import { app } from "../../../scripts/app.js";
 
-const _ID = "ProcessImagePrompt";
+const _ID = "PseudoProcessImagePrompt";
 
 app.registerExtension({
     name: 'pseudocomfy.' + _ID,

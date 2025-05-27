@@ -6,7 +6,7 @@ from .helpers.ipadapter import apply_ipadapter
 from .helpers.imgutil import create_solid_mask
 from .helpers.imgutil import scale_tensor_image
 
-class ApplyDenseDiffusionSDXL:
+class PseudoApplyDenseDiffusionSDXL:
     """
     Processor class for applying dense diffusion to material prompts within a scene context.
     Inputs:
@@ -111,7 +111,7 @@ class ApplyDenseDiffusionSDXL:
         return (work_model, cond, negative_prompt_cond)
     
 
-class ApplyIPAdaperSDXL:
+class PseudoApplyIPAdaperSDXL:
     @classmethod
     def INPUT_TYPES(s):
         return {

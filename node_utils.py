@@ -16,7 +16,7 @@ from PIL import Image
 
 
 
-class MaskBlur:
+class PseudoMaskBlur:
     """
     Utility class for applying a Gaussian blur to image masks.
     Inputs:
@@ -98,7 +98,7 @@ class MaskBlur:
         kernel = kernel / kernel.sum()
         return kernel
 
-class MaskClamp:
+class PseudoMaskClamp:
     """
     Utility class for clamping mask values to a specified range.
     Inputs:
@@ -145,7 +145,7 @@ class MaskClamp:
         clamped = torch.clamp(msk, min=min_val, max=max_val)
         return (clamped,)
 
-class MaskRemap:
+class PseudoMaskRemap:
     """
     Utility class for remapping mask values from a source range to a target range.
     Inputs:
@@ -210,7 +210,7 @@ class MaskRemap:
             remapped = torch.clamp(remapped, min(min(to_min, to_max), 0.0), max(max(to_min, to_max), 1.0))
         return (remapped,)
 
-class MaskInvert:
+class PseudoMaskInvert:
     """
     Utility class for inverting mask values (1 - mask).
     Inputs:
@@ -244,7 +244,7 @@ class MaskInvert:
         inverted = torch.clamp(inverted, 0.0, 1.0)
         return (inverted,)
 
-class MaskReshape:
+class PseudoMaskReshape:
     """
     Utility class for morphological operations on masks: Erode (shrink) and Dilate (expand) white regions.
     Inputs:
@@ -326,7 +326,7 @@ class MaskReshape:
         return (result,)
 
 
-class MaskAggregate:
+class PseudoMaskAggregate:
     """
     Utility class for combining a list of masks into a single mask using various arithmetic operations.
     Inputs:
@@ -400,7 +400,7 @@ class MaskAggregate:
 
 
 
-class PreviewStrings:
+class PseudoPreviewStrings:
     """
     Utility class for previewing a single string in the ComfyUI UI.
     Inputs:
@@ -429,7 +429,7 @@ class PreviewStrings:
         }
 
 
-class ConcatStrings:
+class PseudoConcatStrings:
     """
     Utility class for concatenating two strings with a selectable separator.
     Inputs:
@@ -465,3 +465,87 @@ class ConcatStrings:
         return (result,)
 
 
+class PseudoRemapFloat:
+    """
+    Utility class for remapping a float value from a source range to a target range.
+    Inputs:
+        value (float): The input float value.
+        src_min (float): Source minimum value (default: 0.0).
+        src_max (float): Source maximum value (default: 1.0).
+        tgt_min (float): Target minimum value (default: 0.0).
+        tgt_max (float): Target maximum value (default: 1.0).
+    Outputs:
+        value (float): The remapped float value.
+    """
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "val": ("FLOAT", {"forceInput": True}),
+                "src_min": ("FLOAT", {"default": 0.0}),
+                "src_max": ("FLOAT", {"default": 1.0}),
+                "tgt_min": ("FLOAT", {"default": 0.0}),
+                "tgt_max": ("FLOAT", {"default": 1.0}),
+            },
+        }
+
+    RETURN_TYPES = ("FLOAT",)
+    RETURN_NAMES = ("val",)
+    FUNCTION = "remap"
+    CATEGORY = "Pseudocomfy/Utils"
+
+    def remap(self, val, src_min, src_max, tgt_min, tgt_max):
+        print(f"[pseudocomfy] RemapFloat")
+        print(f"\tvalue: {val}")
+        print(f"\tsource: ({src_min} -> {src_max}), target: ({tgt_min} -> {tgt_max})")
+
+        # Ensure min <= max for both domains
+        if src_min > src_max:
+            src_min, src_max = src_max, src_min
+        if tgt_min > tgt_max:
+            tgt_min, tgt_max = tgt_max, tgt_min
+
+        # Clamp value to source domain
+        val = max(min(val, src_max), src_min)
+
+        if src_max - src_min == 0:
+            remapped = tgt_min
+        else:
+            norm = (val - src_min) / (src_max - src_min)
+            remapped = norm * (tgt_max - tgt_min) + tgt_min
+        return (remapped,)
+    
+
+class PseudoFloatToInt:
+    """
+    Utility class for converting a float value to an integer.
+    Inputs:
+        val (float): The input float value.
+        rounding (str): Rounding method: "round" (default), "floor", or "ceil".
+    Outputs:
+        value (int): The converted integer value.
+    """
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "val": ("FLOAT", {"forceInput": True}),
+                "rounding": (["round", "floor", "ceil"], {"default": "round"}),
+            },
+        }
+
+    RETURN_TYPES = ("INT",)
+    RETURN_NAMES = ("int",)
+    FUNCTION = "convert"
+    CATEGORY = "Pseudocomfy/Utils"
+
+    def convert(self, val, rounding="round"):
+        import math
+        if rounding == "floor":
+            result = int(math.floor(val))
+        elif rounding == "ceil":
+            result = int(math.ceil(val))
+        else:
+            result = int(round(val))
+        print(f"[pseudocomfy] FloatToInt: {val} -> {result} (method: {rounding})")
+        return (result,)

@@ -22,7 +22,7 @@ SP_DIR = CUSTOM_NODES_DIR.joinpath("Pseudocomfy", "snapshots")
 
 
 
-class LoadModelSnapshot:
+class PseudoLoadModelSnapshot:
     """
     Loader class for retrieving model snapshot data from a local directory or a remote URL.
     Inputs:
@@ -80,7 +80,7 @@ class LoadModelSnapshot:
         return m.digest().hex()
 
 
-class UnpackModelSnapshot:
+class PseudoUnpackModelSnapshot:
     """
     Processor class for unpacking a model snapshot JSON into its constituent components for further processing.
     Inputs:

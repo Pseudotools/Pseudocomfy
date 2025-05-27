@@ -11,10 +11,15 @@ from comfy.cli_args import args
 from .helpers.imgutil import scale_tensor_image
 
 
+
+
+
+
+
 # ==============================================================================
 # adpated from ComfyUI SaveImagne node
 # ==============================================================================
-class SaveImageWithEmbeddedMasks:
+class PseudoSaveImageWithEmbeddedMasks:
     def __init__(self):
         self.output_dir = folder_paths.get_output_directory()
         self.type = "output"
