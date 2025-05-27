@@ -42,7 +42,7 @@ def tensor_to_base64(tensor):
     if tensor is None:
         return None
 
-    #print("[pseudocomfy] tensor_to_base64()\\n\ttensor shape =", tuple(tensor.shape))
+    #print("[pseudocomfy] tensor_to_base64()\n\ttensor shape =", tuple(tensor.shape))
 
     arr = tensor.detach().cpu().numpy()
 
@@ -95,3 +95,40 @@ def scale_tensor_image(image_tensor, width, height):
         arr = np.array(pil_img).astype(np.float32) / 255.0
         arr = arr[None, ...]  # [1, H, W]
     return torch.from_numpy(arr)
+
+
+
+def tensor_image_resize_and_crop_to_multiple_of_64(img, target_short_side):
+    # img: [1, H, W, 3] or [1, H, W]
+    shape = img.shape
+    if len(shape) == 4:
+        _, h, w, c = shape
+        is_color = True
+    elif len(shape) == 3:
+        _, h, w = shape
+        is_color = False
+    else:
+        raise ValueError(f"Unsupported tensor shape: {shape}")
+
+    if h < w:
+        scale = target_short_side / h
+        new_h = target_short_side
+        new_w = int(round(w * scale))
+    else:
+        scale = target_short_side / w
+        new_w = target_short_side
+        new_h = int(round(h * scale))
+
+    # Resize
+    resized = scale_tensor_image(img, new_w, new_h)
+
+    # Crop to nearest multiple of 64
+    crop_w = (new_w // 64) * 64
+    crop_h = (new_h // 64) * 64
+    if is_color:
+        cropped = resized[:, :crop_h, :crop_w, :]
+    else:
+        cropped = resized[:, :crop_h, :crop_w]
+
+    print(f"[pseudocomfy] resized image to: ({new_w}, {new_h}), cropped to: ({crop_w}, {crop_h})")
+    return crop_w, crop_h, cropped

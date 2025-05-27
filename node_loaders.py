@@ -14,7 +14,7 @@ import gzip
 import folder_paths
 import node_helpers
 
-from .helpers.imgutil import make_multiple_of_64, scale_tensor_image
+from .helpers.imgutil import make_multiple_of_64
 
 
 CUSTOM_NODES_DIR = Path(folder_paths.folder_names_and_paths["custom_nodes"][0][0])
@@ -48,7 +48,7 @@ class PseudoLoadModelSnapshot:
 
     FUNCTION = "load"
 
-    CATEGORY = "Pseudocomfy/Loaders"
+    CATEGORY = "Pseudocomfy/IO"
 
     def load(self, string_path):
         print(f"[pseudocomfy] LoadModelSnapshot\n\tstring_path: {string_path}")
@@ -92,8 +92,8 @@ class PseudoUnpackModelSnapshot:
         env_scene (str): Scene description prompt from the environment.
         env_style (str): Style description prompt from the environment.
         env_negative (str): Negative prompt for conditioning from the environment.
-        width (int): Target width for all masks and outputs, rounded to the nearest multiple of 64.
-        height (int): Target height for all masks and outputs, rounded to the nearest multiple of 64.
+        width (int): Target width for all masks and outputs, as given in the input JSON.
+        height (int): Target height for all masks and outputs, as given in the input JSON.
         img_depth (tensor): Decoded and resized depth image tensor ([1, H, W, 3]).
         img_edge (None): Placeholder for edge image output (not supported yet).
         img_style (None): Placeholder for style image output (not supported yet).
@@ -123,8 +123,6 @@ class PseudoUnpackModelSnapshot:
                         "STRING",
                         "STRING",
                         "STRING",
-                        "INT",
-                        "INT",
                         "IMAGE",
                         "IMAGE",
                         "IMAGE",
@@ -137,8 +135,6 @@ class PseudoUnpackModelSnapshot:
                         "env_scene",
                         "env_style",
                         "env_negative",
-                        "width",
-                        "height",
                         "img_depth",
                         "img_edge",
                         "img_style",
@@ -153,13 +149,11 @@ class PseudoUnpackModelSnapshot:
                         False,
                         False,
                         False,
-                        False,
-                        False,
                         False,                       
                     )
 
     FUNCTION = "process_json"
-    CATEGORY = "Pseudocomfy/Processors"
+    CATEGORY = "Pseudocomfy/IO"
 
     def process_json(self, json_data):
         expected_keys = [
@@ -193,21 +187,19 @@ class PseudoUnpackModelSnapshot:
         env_style = pmts_environment['pmt_style']
         env_negative = pmts_environment['pmt_negative']
 
-        width = make_multiple_of_64(json_data['width'])
-        height = make_multiple_of_64(json_data['height'])
-        #scaled_width = int(width * scale_img_by)
-        #scaled_height = int(height * scale_img_by)
+        width_given = json_data['width']
+        height_given = json_data['height']
 
         # depth image:
         img_depth = json_data['img_depth']
-        #depth_tensor = decode_and_scale_depth(img_depth, scale_img_by, width, height)
-        depth_tensor = scale_tensor_image( decode_rgb_image(img_depth), width, height )
+        #depth_tensor = scale_tensor_image( decode_rgb_image(img_depth), width, height )
+        depth_tensor = decode_rgb_image(img_depth)
 
         mat_msks = []
         for img in masks_base64:
             #scaled_mask = decode_and_scale_mask(img, scale_img_by, width, height)
-            scaled_mask = scale_tensor_image( decode_mask(img, width, height), width, height )
-            mat_msks.append(scaled_mask)
+            #scaled_mask = scale_tensor_image( decode_mask(img, width_given, height_given), width, height )
+            mat_msks.append(decode_mask(img, width_given, height_given))
 
         mat_imgs = []
         for img in mat_imgs_base64:
@@ -217,7 +209,7 @@ class PseudoUnpackModelSnapshot:
             mat_imgs.append(img)
        
         
-        print(f"\tgiven w,h: ({width}, {height})")
+        print(f"\tgiven w,h: ({width_given}, {height_given})")
         print(f"\tdepth_tensor shape: {tuple(depth_tensor.shape)} ([1, H, W, 3] expected)")
         print(f"\tmat txts/imgs/msks lengths: {len(mat_txts)},{len(mat_imgs)},{len(mat_msks)} (all should be equal)")
         if len(mat_msks) > 1: print(f"\tmat_msks shape:{tuple(mat_msks[0].shape)} ([1, H, W] expected)")
@@ -239,8 +231,6 @@ class PseudoUnpackModelSnapshot:
             env_scene,
             env_style,
             env_negative,
-            width,
-            height,
             depth_tensor,
             None, # no edge image support yet
             None, # no style image support yet

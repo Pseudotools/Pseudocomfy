@@ -3,7 +3,7 @@ import copy
 import torch
 
 from .helpers.imgutil import tensor_to_base64
-from .helpers.imgutil import make_multiple_of_64, scale_tensor_image
+from .helpers.imgutil import tensor_image_resize_and_crop_to_multiple_of_64
 
 
 class PseudoProcessEnvironmentalPrompts:
@@ -40,7 +40,7 @@ class PseudoProcessEnvironmentalPrompts:
     FUNCTION = "notify"
     OUTPUT_NODE = True
 
-    CATEGORY = "Pseudocomfy/Utils"
+    CATEGORY = "Pseudocomfy/Processing"
 
     def notify(self, env_scene, env_style, env_negative, unique_id=None, extra_pnginfo=None):
         if unique_id is not None and extra_pnginfo is not None:
@@ -82,6 +82,7 @@ class PseudoProcessMaterialPrompts:
         mat_txts_lst (list of str): List of material prompt texts.
         mat_imgs_lst (list of tensor): List of image tensors as [1, H, W, 3] corresponding to the material prompts.
         mat_msks_lst (list of tensor): List of mask tensors as [1, H, W] corresponding to the material prompts.
+        scale_to (int): The target dimension for the shorter side of the given masks (options: 512, 1024).
     Outputs:
         mat_txts (list of str): Deep-copied list of material prompt texts.
         mat_imgs (list of tensor): Deep-copied list of image tensors.
@@ -99,29 +100,50 @@ class PseudoProcessMaterialPrompts:
                 "mat_txts_lst": ("STRING", {"forceInput": True}),
                 "mat_imgs_lst": ("IMAGE", {"forceInput": True}),
                 "mat_msks_lst": ("MASK", {"forceInput": True}),
+                "scale_to": ("INT", {"default": 1024, "options": [512, 1024]}),                
             }
         }
 
     INPUT_IS_LIST = True
-    OUTPUT_IS_LIST = (True,True,True,False,)
-    RETURN_TYPES = ("STRING", "IMAGE", "MASK", "STRING",)
-    RETURN_NAMES = ("mat_txts", "mat_imgs", "mat_msks", "mat_txts_all",)
+    OUTPUT_IS_LIST = (True,True,True,False,False,False)
+    RETURN_TYPES = ("STRING", "IMAGE", "MASK", "STRING","INT", "INT",)
+    RETURN_NAMES = ("mat_txts", "mat_imgs", "mat_msks", "mat_txts_all", "scaled_width", "scaled_height",)
     FUNCTION = "func"
     OUTPUT_NODE = True
 
-    CATEGORY = "Pseudocomfy/Utils"
+    CATEGORY = "Pseudocomfy/Processing"
 
-    def func(self, mat_txts_lst, mat_imgs_lst, mat_msks_lst):
+    def func(self, mat_txts_lst, mat_imgs_lst, mat_msks_lst, scale_to):
         print("[pseudocomfy] ProcessMaterialPrompts")
         
-        # all inputs are expected to be lists
+        # mat inputs are expected to be lists
         mat_txts = mat_txts_lst 
         mat_imgs = mat_imgs_lst
         mat_msks = mat_msks_lst
-        
+
+        # if scale_to is a list, use the first element
+        if isinstance(scale_to, list) and len(scale_to)>0: scale_to = scale_to[0]        
+
+        # ensure scale_to is a valid option
+        if scale_to not in [512, 1024]:
+            raise ValueError(f"Invalid scale_to value: {scale_to}. Expected 512 or 1024.")
+
+        # convert all image and mask tensors to base64 for UI display        
         mat_imgs_b64 = [tensor_to_base64(t) for t in mat_imgs]
         mat_msks_b64 = [tensor_to_base64(t) for t in mat_msks]
         
+        # Resize and crop all masks to the target scale
+        mat_msks_resized = []
+        scaled_width = None
+        scaled_height = None
+        for m in mat_msks:
+            sw, sh, m_resized = tensor_image_resize_and_crop_to_multiple_of_64(m, scale_to)
+            mat_msks_resized.append(m_resized)
+            # Store the scaled dimensions from the first mask (assuming all are the same)
+            if scaled_width is None and scaled_height is None:
+                scaled_width = sw
+                scaled_height = sh
+
         # concatenate all mask texts
         parts = [s for s in mat_txts if s is not None and str(s).strip() != ""]
         mat_txts_all = "; ".join(parts)
@@ -132,7 +154,7 @@ class PseudoProcessMaterialPrompts:
             "result": (
                     copy.deepcopy(mat_txts),
                     copy.deepcopy(mat_imgs),
-                    copy.deepcopy(mat_msks),
+                    mat_msks_resized,
                     mat_txts_all,
                 )
             }
@@ -142,23 +164,19 @@ class PseudoProcessImagePrompt:
     """
     Utility class for scaling images and returning both the scaled image and relevant metadata.
     Inputs:
-        given_width (int): The original width of the image.
-        given_height (int): The original height of the image.
         img (tensor): The input image tensor, expected shape [1, H, W, 3].
-        scale_by (float): The scaling factor to apply to the image dimensions (default: 2.0, min: 1.0, max: 4.0, step: 0.5).
+        scale_to (int): The target dimension for the shorter side of the given image (options: 512, 1024).
     Outputs:
         scaled_width (int): The width of the scaled image (multiple of 64).
         scaled_height (int): The height of the scaled image (multiple of 64).
-        img (tensor): The scaled image tensor, same shape as given.
+        img (tensor): The scaled and cropped image tensor.
     """
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
-                "given_width": ("INT", {"forceInput": True}),
-                "given_height": ("INT", {"forceInput": True}),
                 "img": ("IMAGE", {"forceInput": True}),
-                "scale_by": ("FLOAT", {"default": 2.0, "min": 1.0, "max": 4.0, "step": 0.5}),
+                "scale_to": ("INT", {"default": 1024, "options": [512, 1024]}),
             }
         }
 
@@ -166,28 +184,28 @@ class PseudoProcessImagePrompt:
     RETURN_NAMES = ("scaled_width", "scaled_height", "img",)
     FUNCTION = "func"
     OUTPUT_NODE = True
-    CATEGORY = "Pseudocomfy/Utils"
+    CATEGORY = "Pseudocomfy/Processing"
 
-    def func(self, given_width, given_height, img, scale_by):
-        print(f"[pseudocomfy] ProcessImagePrompt\n\tgiven w,h: ({given_width},{given_height})\n\tscale_by: {scale_by}\n\timg: {tuple(img.shape)}")
+    def func(self, img, scale_to):
+        print(f"[pseudocomfy] ProcessImagePrompt\n\tscale_to: {scale_to}\n\timg: {tuple(img.shape)}")
+
+        # ensure scale_to is a valid option
+        if scale_to not in [512, 1024]:
+            raise ValueError(f"Invalid scale_to value: {scale_to}. Expected 512 or 1024.")        
         
-        scaled_width = int(make_multiple_of_64(given_width * scale_by))
-        scaled_height = int(make_multiple_of_64(given_height * scale_by))
-        image = scale_tensor_image(img, scaled_width, scaled_height)
-        #print("completed scaling to: ", scaled_width, scaled_height, img.shape)
-        #return (scaled_width, scaled_height,image,)
+        given_height, given_width = img.shape[1], img.shape[2]
+        scaled_width, scaled_height, image = tensor_image_resize_and_crop_to_multiple_of_64(img, scale_to)
         return {
-                "ui": { #comfyui expects all values in ui to be wrapped in a list
-                        "img": [tensor_to_base64(image)], 
-                        "given_width": [given_width], 
-                        "given_height": [given_height], 
-                        "scaled_width": [scaled_width], 
-                        "scaled_height": [scaled_height]
-                    }, 
-                "result": (
-                    scaled_width,
-                    scaled_height,
-                    image,
-                )
-            }
- 
+            "ui": { #comfyui expects all values in ui to be wrapped in a list
+                "given_width": [given_width],
+                "given_height": [given_height],                
+                "img": [tensor_to_base64(image)],
+                "scaled_width": [scaled_width],
+                "scaled_height": [scaled_height]
+            },
+            "result": (
+                scaled_width,
+                scaled_height,
+                image,
+            )
+        }
