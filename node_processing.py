@@ -100,7 +100,7 @@ class PseudoProcessMaterialPrompts:
                 "mat_txts_lst": ("STRING", {"forceInput": True}),
                 "mat_imgs_lst": ("IMAGE", {"forceInput": True}),
                 "mat_msks_lst": ("MASK", {"forceInput": True}),
-                "scale_to": ("INT", {"default": 1024, "options": [512, 1024]}),                
+                "scale_to": (["512", "1024"], {"default": "1024"}),               
             }
         }
 
@@ -123,10 +123,11 @@ class PseudoProcessMaterialPrompts:
 
         # if scale_to is a list, use the first element
         if isinstance(scale_to, list) and len(scale_to)>0: scale_to = scale_to[0]        
+        # Convert scale_to from string to int
+        scale_to_int = int(scale_to)
+        if scale_to_int not in [512, 1024]:
+            raise ValueError(f"Invalid scale_to value: {scale_to}. Expected 512 or 1024.")             
 
-        # ensure scale_to is a valid option
-        if scale_to not in [512, 1024]:
-            raise ValueError(f"Invalid scale_to value: {scale_to}. Expected 512 or 1024.")
 
         # convert all image and mask tensors to base64 for UI display        
         mat_imgs_b64 = [tensor_to_base64(t) for t in mat_imgs]
@@ -137,7 +138,7 @@ class PseudoProcessMaterialPrompts:
         scaled_width = None
         scaled_height = None
         for m in mat_msks:
-            sw, sh, m_resized = tensor_image_resize_and_crop_to_multiple_of_64(m, scale_to)
+            sw, sh, m_resized = tensor_image_resize_and_crop_to_multiple_of_64(m, scale_to_int)
             mat_msks_resized.append(m_resized)
             # Store the scaled dimensions from the first mask (assuming all are the same)
             if scaled_width is None and scaled_height is None:
@@ -165,7 +166,7 @@ class PseudoProcessImagePrompt:
     Utility class for scaling images and returning both the scaled image and relevant metadata.
     Inputs:
         img (tensor): The input image tensor, expected shape [1, H, W, 3].
-        scale_to (int): The target dimension for the shorter side of the given image (options: 512, 1024).
+        scale_to (str): The target dimension for the shorter side of the given image ("512" or "1024").
     Outputs:
         scaled_width (int): The width of the scaled image (multiple of 64).
         scaled_height (int): The height of the scaled image (multiple of 64).
@@ -176,7 +177,7 @@ class PseudoProcessImagePrompt:
         return {
             "required": {
                 "img": ("IMAGE", {"forceInput": True}),
-                "scale_to": ("INT", {"default": 1024, "options": [512, 1024]}),
+                "scale_to": (["512", "1024"], {"default": "1024"}),
             }
         }
 
@@ -189,12 +190,13 @@ class PseudoProcessImagePrompt:
     def func(self, img, scale_to):
         print(f"[pseudocomfy] ProcessImagePrompt\n\tscale_to: {scale_to}\n\timg: {tuple(img.shape)}")
 
-        # ensure scale_to is a valid option
-        if scale_to not in [512, 1024]:
+        # Convert scale_to from string to int
+        scale_to_int = int(scale_to)
+        if scale_to_int not in [512, 1024]:
             raise ValueError(f"Invalid scale_to value: {scale_to}. Expected 512 or 1024.")        
         
         given_height, given_width = img.shape[1], img.shape[2]
-        scaled_width, scaled_height, image = tensor_image_resize_and_crop_to_multiple_of_64(img, scale_to)
+        scaled_width, scaled_height, image = tensor_image_resize_and_crop_to_multiple_of_64(img, scale_to_int)
         return {
             "ui": { #comfyui expects all values in ui to be wrapped in a list
                 "given_width": [given_width],

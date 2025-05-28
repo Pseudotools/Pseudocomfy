@@ -465,7 +465,7 @@ class PseudoConcatStrings:
         return (result,)
 
 
-class PseudoRemapFloat:
+class PseudoRemapNormalizedFloat:
     """
     Utility class for remapping a float value from a source range to a target range.
     Inputs:
@@ -482,8 +482,6 @@ class PseudoRemapFloat:
         return {
             "required": {
                 "val": ("FLOAT", {"forceInput": True}),
-                "src_min": ("FLOAT", {"default": 0.0}),
-                "src_max": ("FLOAT", {"default": 1.0}),
                 "tgt_min": ("FLOAT", {"default": 0.0}),
                 "tgt_max": ("FLOAT", {"default": 1.0}),
             },
@@ -494,14 +492,14 @@ class PseudoRemapFloat:
     FUNCTION = "remap"
     CATEGORY = "Pseudocomfy/Utils"
 
-    def remap(self, val, src_min, src_max, tgt_min, tgt_max):
+    def remap(self, val, tgt_min, tgt_max):
         print(f"[pseudocomfy] RemapFloat")
         print(f"\tvalue: {val}")
-        print(f"\tsource: ({src_min} -> {src_max}), target: ({tgt_min} -> {tgt_max})")
+        print(f"\t0-1 ==> {tgt_min}-{tgt_max}")
 
-        # Ensure min <= max for both domains
-        if src_min > src_max:
-            src_min, src_max = src_max, src_min
+        src_min, src_max = 0.0, 1.0  # Default source range
+
+        # Ensure min <= max
         if tgt_min > tgt_max:
             tgt_min, tgt_max = tgt_max, tgt_min
 
