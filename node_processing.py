@@ -100,7 +100,7 @@ class PseudoProcessMaterialPrompts:
                 "mat_txts_lst": ("STRING", {"forceInput": True}),
                 "mat_imgs_lst": ("IMAGE", {"forceInput": True}),
                 "mat_msks_lst": ("MASK", {"forceInput": True}),
-                "scale_to": (["512", "1024"], {"default": "1024"}),               
+                "scale_msk_to": (["512", "1024"], {"default": "1024"}),               
             }
         }
 
@@ -113,7 +113,7 @@ class PseudoProcessMaterialPrompts:
 
     CATEGORY = "Pseudocomfy/Processing"
 
-    def func(self, mat_txts_lst, mat_imgs_lst, mat_msks_lst, scale_to):
+    def func(self, mat_txts_lst, mat_imgs_lst, mat_msks_lst, scale_msk_to):
         print("[pseudocomfy] ProcessMaterialPrompts")
         
         # mat inputs are expected to be lists
@@ -122,11 +122,11 @@ class PseudoProcessMaterialPrompts:
         mat_msks = mat_msks_lst
 
         # if scale_to is a list, use the first element
-        if isinstance(scale_to, list) and len(scale_to)>0: scale_to = scale_to[0]        
+        if isinstance(scale_msk_to, list) and len(scale_msk_to)>0: scale_msk_to = scale_msk_to[0]        
         # Convert scale_to from string to int
-        scale_to_int = int(scale_to)
+        scale_to_int = int(scale_msk_to)
         if scale_to_int not in [512, 1024]:
-            raise ValueError(f"Invalid scale_to value: {scale_to}. Expected 512 or 1024.")             
+            raise ValueError(f"Invalid scale_to value: {scale_msk_to}. Expected 512 or 1024.")             
 
 
         # convert all image and mask tensors to base64 for UI display        
@@ -177,7 +177,7 @@ class PseudoProcessImagePrompt:
         return {
             "required": {
                 "img": ("IMAGE", {"forceInput": True}),
-                "scale_to": (["512", "1024"], {"default": "1024"}),
+                "scale_img_to": (["512", "1024"], {"default": "1024"}),
             }
         }
 
@@ -187,13 +187,13 @@ class PseudoProcessImagePrompt:
     OUTPUT_NODE = True
     CATEGORY = "Pseudocomfy/Processing"
 
-    def func(self, img, scale_to):
-        print(f"[pseudocomfy] ProcessImagePrompt\n\tscale_to: {scale_to}\n\timg: {tuple(img.shape)}")
+    def func(self, img, scale_img_to):
+        print(f"[pseudocomfy] ProcessImagePrompt\n\tscale_to: {scale_img_to}\n\timg: {tuple(img.shape)}")
 
         # Convert scale_to from string to int
-        scale_to_int = int(scale_to)
+        scale_to_int = int(scale_img_to)
         if scale_to_int not in [512, 1024]:
-            raise ValueError(f"Invalid scale_to value: {scale_to}. Expected 512 or 1024.")        
+            raise ValueError(f"Invalid scale_to value: {scale_img_to}. Expected 512 or 1024.")        
         
         given_height, given_width = img.shape[1], img.shape[2]
         scaled_width, scaled_height, image = tensor_image_resize_and_crop_to_multiple_of_64(img, scale_to_int)
