@@ -51,7 +51,7 @@ NODE_CLASS_MAPPINGS = {
     "PseudoPreviewStrings": PseudoPreviewStrings,
     "PseudoConcatStrings": PseudoConcatStrings,
 
-    "PseudoRemapFloat": PseudoRemapFloat,
+    "PseudoRemapNormalizedFloat": PseudoRemapNormalizedFloat,
     "PseudoFloatToInt": PseudoFloatToInt,
 }
 
@@ -85,6 +85,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PseudoPreviewStrings": "Preview Strings",
     "PseudoConcatStrings": "Concat Strings",
 
-    "PseudoRemapFloat": "Remap Float",
+    "PseudoRemapNormalizedFloat": "Remap Float",
     "PseudoFloatToInt": "Float to Int",
 }
