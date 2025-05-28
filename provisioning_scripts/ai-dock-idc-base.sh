@@ -12,10 +12,11 @@ NODES=(
     "https://github.com/Pseudotools/ComfyUI_IPAdapter_plus"
 )
 CHECKPOINT_MODELS=(
-    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/Juggernaut_X_RunDiffusion_Hyper.safetensors"
-    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/albedobaseXL_v21.safetensors"    
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/sd_xl_base_1.0.safetensors"
-    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/sd_xl_refiner_1.0.safetensors"
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/sd_xl_refiner_1.0.safetensors"    
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/Juggernaut_X_RunDiffusion_Hyper.safetensors"
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/albedobaseXL_v21.safetensors"
+    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/realvisxlV50_v50LightningBakedvae.safetensors"    
 )
 UNET_MODELS=()
 LORA_MODELS=()
