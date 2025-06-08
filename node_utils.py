@@ -32,7 +32,7 @@ class PseudoMaskBlur:
             "required": {
                 "msks_list": ("MASK",),
                 "blur_radius": ("INT", {
-                    "default": 1,
+                    "default": 25,
                     "min": 1,
                     "max": 51,
                     "step": 1
