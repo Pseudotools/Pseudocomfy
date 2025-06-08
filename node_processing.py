@@ -122,7 +122,12 @@ class PseudoProcessMaterialPrompts:
         mat_msks = mat_msks_lst
 
         # if scale_to is a list, use the first element
-        if isinstance(scale_msk_to, list) and len(scale_msk_to)>0: scale_msk_to = scale_msk_to[0]        
+        if isinstance(scale_msk_to, list) and len(scale_msk_to)>0: scale_msk_to = scale_msk_to[0]     
+
+        # verify scale_to value - ComfyUI is behaving weirdly about the default value
+        if not scale_img_to or scale_img_to not in ["512", "1024"]:
+            scale_img_to = "1024"        
+
         # Convert scale_to from string to int
         scale_to_int = int(scale_msk_to)
         if scale_to_int not in [512, 1024]:
@@ -189,6 +194,10 @@ class PseudoProcessImagePrompt:
 
     def func(self, img, scale_img_to):
         print(f"[pseudocomfy] ProcessImagePrompt\n\tscale_to: {scale_img_to}\n\timg: {tuple(img.shape)}")
+
+        # verify scale_to value - ComfyUI is behaving weirdly about the default value
+        if not scale_img_to or scale_img_to not in ["512", "1024"]:
+            scale_img_to = "1024"
 
         # Convert scale_to from string to int
         scale_to_int = int(scale_img_to)

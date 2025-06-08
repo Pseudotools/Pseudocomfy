@@ -17,7 +17,7 @@ from .helpers.imgutil import scale_tensor_image
 
 
 # ==============================================================================
-# adpated from ComfyUI SaveImagne node
+# adpated from ComfyUI SaveImage node
 # ==============================================================================
 class PseudoSaveImageWithEmbeddedMasks:
     def __init__(self):

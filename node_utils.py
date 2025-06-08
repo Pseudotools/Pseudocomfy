@@ -30,7 +30,7 @@ class PseudoMaskBlur:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "msk": ("MASK",),
+                "msks_list": ("MASK",),
                 "blur_radius": ("INT", {
                     "default": 1,
                     "min": 1,
@@ -47,48 +47,64 @@ class PseudoMaskBlur:
             },
         }
 
+    INPUT_IS_LIST = True
+    OUTPUT_IS_LIST = (True,)
     RETURN_TYPES = ("MASK",)
-    RETURN_NAMES = ("msk",)
+    RETURN_NAMES = ("msks",)
     FUNCTION = "blur"
     CATEGORY = "Pseudocomfy/Utils"
 
-    def blur(self, msk: torch.Tensor, blur_radius: int, sigma: float, invert):
+    def blur(self, msks_list, blur_radius: int, sigma: float, invert):
         """
-        Expects (1, H, W) or (B, H, W)
+        Apply Gaussian blur to a list of masks.
+        Expects each mask to be (1, H, W) or (B, H, W)
         """
-        print(f"[pseudocomfy] BlurMask blur_radius:{blur_radius} sigma:{sigma} msk shape:{tuple(msk.shape)}")
+        # given that INPUT_IS_LIST, msks_list is a list of masks
+        # if inputs that are meant to be singletons are a list, use the first element
+        if isinstance(blur_radius, list) and len(blur_radius)>0: blur_radius = blur_radius[0]
+        if isinstance(sigma, list) and len(sigma)>0: sigma = sigma[0]
+        if isinstance(invert, list) and len(invert)>0: invert = invert[0]
 
-        if blur_radius == 0:
-            return (msk,)
+        
+        print(f"[pseudocomfy] BlurMask blur_radius:{blur_radius} sigma:{sigma}")
 
-        device = msk.device
+        results = []
+        for msk in msks_list:
+            print(f"\tmsk shape:{tuple(msk.shape)}")
 
-        # Ensure batch dimension
-        if msk.ndim == 2:
-            msk = msk.unsqueeze(0)  # (1, H, W)
+            if blur_radius == 0:
+                results.append(msk)
+                continue
 
-        B, H, W = msk.shape
+            device = msk.device
 
-        # Add channel dimension for conv2d
-        msk = msk.unsqueeze(1)  # (B, 1, H, W)
+            # Ensure batch dimension
+            if msk.ndim == 2:
+                msk = msk.unsqueeze(0)  # (1, H, W)
 
-        kernel_size = blur_radius * 2 + 1
-        kernel = self.gaussian_kernel(kernel_size, sigma, device=device)
-        kernel = kernel.expand(1, 1, kernel_size, kernel_size)
+            B, H, W = msk.shape
 
-        pad = blur_radius
-        padded_image = F.pad(msk, (pad, pad, pad, pad), mode='reflect')
-        blurred = F.conv2d(padded_image, kernel, padding=0, groups=1)
-        blurred = blurred[:, :, pad:-pad, pad:-pad]  # Remove extra padding
+            # Add channel dimension for conv2d
+            msk = msk.unsqueeze(1)  # (B, 1, H, W)
 
-        # Remove channel dimension
-        result = blurred.squeeze(1)  # (B, H, W)
+            kernel_size = blur_radius * 2 + 1
+            kernel = self.gaussian_kernel(kernel_size, sigma, device=device)
+            kernel = kernel.expand(1, 1, kernel_size, kernel_size)
 
-        if invert:
-            result = 1.0 - result
-            result = torch.clamp(result, 0.0, 1.0)        
+            pad = blur_radius
+            padded_image = F.pad(msk, (pad, pad, pad, pad), mode='reflect')
+            blurred = F.conv2d(padded_image, kernel, padding=0, groups=1)
+            blurred = blurred[:, :, pad:-pad, pad:-pad]  # Remove extra padding
 
-        return (result,)
+            # Remove channel dimension
+            result = blurred.squeeze(1)  # (B, H, W)
+
+            if invert:
+                result = 1.0 - result
+                result = torch.clamp(result, 0.0, 1.0)
+
+            results.append(result)
+        return (results,)
     
     def gaussian_kernel(self, kernel_size, sigma, device):
         """Create a 2D Gaussian kernel."""
@@ -112,7 +128,7 @@ class PseudoMaskClamp:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "msk": ("MASK",),
+                "msks_list": ("MASK",),
                 "min_val": ("FLOAT", {
                     "default": 0.0,
                     "min": 0.0,
@@ -130,20 +146,31 @@ class PseudoMaskClamp:
             }
         }
 
+    INPUT_IS_LIST = True
+    OUTPUT_IS_LIST = (True,)
     RETURN_TYPES = ("MASK",)
-    RETURN_NAMES = ("msk",)
+    RETURN_NAMES = ("msks",)
     FUNCTION = "clamp"
     CATEGORY = "Pseudocomfy/Utils"
 
-    def clamp(self, msk: torch.Tensor, min_val: float, max_val: float):
+    def clamp(self, msks_list, min_val: float, max_val: float):
         """
-        Clamp mask values to [min_val, max_val].
+        Clamp mask values to [min_val, max_val] for a list of masks.
         """
+        # given that INPUT_IS_LIST, msks_list is a list of masks
+        # if inputs that are meant to be singletons are a list, use the first element
+        if isinstance(min_val, list) and len(min_val)>0: min_val = min_val[0]
+        if isinstance(max_val, list) and len(max_val)>0: max_val = max_val[0]
+
         print(f"[pseudocomfy] ClampMask")
-        print(f"\tmsk shape:{tuple(msk.shape)}")
-        print(f"\tclamping mask of ({msk.min():.3f} -> {msk.max():.3f}) to ({min_val:.3f} -> {max_val:.3f})")
-        clamped = torch.clamp(msk, min=min_val, max=max_val)
-        return (clamped,)
+
+        results = []
+        for msk in msks_list:
+            print(f"\tmsk shape:{tuple(msk.shape)}")
+            print(f"\tclamping mask of ({msk.min():.3f} -> {msk.max():.3f}) to ({min_val:.3f} -> {max_val:.3f})")
+            clamped = torch.clamp(msk, min=min_val, max=max_val)
+            results.append(clamped)
+        return (results,)
 
 class PseudoMaskRemap:
     """
@@ -161,7 +188,7 @@ class PseudoMaskRemap:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "msk": ("MASK",),
+                "msks_list": ("MASK",),
             },
             "optional": {
                 "src_min": ("FLOAT", {"forceInput": True}), # force input b/c can't have widget for None
@@ -181,34 +208,47 @@ class PseudoMaskRemap:
             }
         }
 
+    INPUT_IS_LIST = True
+    OUTPUT_IS_LIST = (True,)
     RETURN_TYPES = ("MASK",)
-    RETURN_NAMES = ("msk",)
+    RETURN_NAMES = ("msks",)
     FUNCTION = "remap"
     CATEGORY = "Pseudocomfy/Utils"
 
-    def remap(self, msk: torch.Tensor, src_min: float = None, src_max: float = None, tgt_min: float = 0.0, tgt_max: float = 1.0):
+    def remap(self, msks_list, src_min: float = None, src_max: float = None, tgt_min: float = 0.0, tgt_max: float = 1.0):
         """
-        Remap mask values from [src_min, src_max] to [tgt_min, tgt_max].
+        Remap mask values from [src_min, src_max] to [tgt_min, tgt_max] for a list of masks.
         """
-        mask_min = float(msk.min())
-        mask_max = float(msk.max())
-        from_min = src_min if src_min is not None else mask_min
-        from_max = src_max if src_max is not None else mask_max
-        to_min = tgt_min
-        to_max = tgt_max
+        # given that INPUT_IS_LIST, msks_list is a list of masks
+        # if inputs that are meant to be singletons are a list, use the first element
+        if isinstance(src_min, list) and len(src_min)>0: src_min = src_min[0]
+        if isinstance(src_max, list) and len(src_max)>0: src_max = src_max[0]
+        if isinstance(tgt_min, list) and len(tgt_min)>0: tgt_min = tgt_min[0]
+        if isinstance(tgt_max, list) and len(tgt_max)>0: tgt_max = tgt_max[0]
 
         print(f"[pseudocomfy] RemapMask")
-        print(f"\tmsk shape:{tuple(msk.shape)}")
-        print(f"\tremapping mask of ({mask_min:.3f} -> {mask_max:.3f}) from ({from_min:.3f} -> {from_max:.3f}) to ({to_min:.3f} -> {to_max:.3f})")
 
-        # Avoid division by zero
-        if from_max - from_min == 0:
-            remapped = torch.full_like(msk, to_min)
-        else:
-            norm = (msk - from_min) / (from_max - from_min)
-            remapped = norm * (to_max - to_min) + to_min
-            remapped = torch.clamp(remapped, min(min(to_min, to_max), 0.0), max(max(to_min, to_max), 1.0))
-        return (remapped,)
+        results = []
+        for msk in msks_list:
+            mask_min = float(msk.min())
+            mask_max = float(msk.max())
+            from_min = src_min if src_min is not None else mask_min
+            from_max = src_max if src_max is not None else mask_max
+            to_min = tgt_min
+            to_max = tgt_max
+            
+            print(f"\tmsk shape:{tuple(msk.shape)}")
+            print(f"\tremapping mask of ({mask_min:.3f} -> {mask_max:.3f}) from ({from_min:.3f} -> {from_max:.3f}) to ({to_min:.3f} -> {to_max:.3f})")
+
+            # Avoid division by zero
+            if from_max - from_min == 0:
+                remapped = torch.full_like(msk, to_min)
+            else:
+                norm = (msk - from_min) / (from_max - from_min)
+                remapped = norm * (to_max - to_min) + to_min
+                remapped = torch.clamp(remapped, min(min(to_min, to_max), 0.0), max(max(to_min, to_max), 1.0))
+            results.append(remapped)
+        return (results,)
 
 class PseudoMaskInvert:
     """
@@ -222,27 +262,35 @@ class PseudoMaskInvert:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "msk": ("MASK",),
+                "msks_list": ("MASK",),
             }
         }
 
+    INPUT_IS_LIST = True
+    OUTPUT_IS_LIST = (True,)
     RETURN_TYPES = ("MASK",)
-    RETURN_NAMES = ("msk",)
+    RETURN_NAMES = ("msks",)
     FUNCTION = "invert"
     CATEGORY = "Pseudocomfy/Utils"
 
-    def invert(self, msk: torch.Tensor):
+    def invert(self, msks_list):
         """
-        Invert mask values (1 - mask).
+        Invert mask values (1 - mask) for a list of masks.
         """
-        mask_min = float(msk.min())
-        mask_max = float(msk.max())
-        print(f"[pseudocomfy] MaskInvert")
-        print(f"\tmsk shape:{tuple(msk.shape)}")
-        print(f"\tinverting mask of ({mask_min:.3f} -> {mask_max:.3f}) to ({1-mask_max:.3f} -> {1-mask_min:.3f})")
-        inverted = 1.0 - msk
-        inverted = torch.clamp(inverted, 0.0, 1.0)
-        return (inverted,)
+        # given that INPUT_IS_LIST, msks_list is a list of masks
+        
+        print(f"[pseudocomfy] MaskInvert")        
+
+        results = []
+        for msk in msks_list:
+            mask_min = float(msk.min())
+            mask_max = float(msk.max())
+            print(f"\tmsk shape:{tuple(msk.shape)}")
+            print(f"\tinverting mask of ({mask_min:.3f} -> {mask_max:.3f}) to ({1-mask_max:.3f} -> {1-mask_min:.3f})")
+            inverted = 1.0 - msk
+            inverted = torch.clamp(inverted, 0.0, 1.0)
+            results.append(inverted)
+        return (results,)
 
 class PseudoMaskReshape:
     """
@@ -259,7 +307,7 @@ class PseudoMaskReshape:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "msk": ("MASK",),
+                "msks_list": ("MASK",),
                 "operation": (["erode (shrink white areas)", "dilate (grow white areas)"], {}),
                 "kernel_size": ("INT", {
                     "default": 3,
@@ -277,60 +325,74 @@ class PseudoMaskReshape:
             }
         }
 
+    INPUT_IS_LIST = True
+    OUTPUT_IS_LIST = (True,)
     RETURN_TYPES = ("MASK",)
-    RETURN_NAMES = ("msk",)
+    RETURN_NAMES = ("msks",)
     FUNCTION = "morph"
     CATEGORY = "Pseudocomfy/Utils"
 
-    def morph(self, msk: torch.Tensor, operation: str, kernel_size: int, iterations: int, invert):
+    def morph(self, msks_list, operation: str, kernel_size: int, iterations: int, invert):
         """
-        Apply morphological operation to mask.
+        Apply morphological operation to a list of masks.
         """
-        print(f"[pseudocomfy] MaskMorphology")
-        print(f"\tmsk shape:{tuple(msk.shape)}")
-        print(f"\toperation: {operation}, kernel_size: {kernel_size}, iterations: {iterations}")
+        # given that INPUT_IS_LIST, msks_list is a list of masks
+        # if inputs that are meant to be singletons are a list, use the first element
+        if isinstance(operation, list) and len(operation)>0: operation = operation[0]
+        if isinstance(kernel_size, list) and len(kernel_size)>0: kernel_size = kernel_size[0]
+        if isinstance(iterations, list) and len(iterations)>0: iterations = iterations[0]
+        if isinstance(invert, list) and len(invert)>0: invert = invert[0]
 
-        # Ensure batch dimension
-        if msk.ndim == 2:
-            msk = msk.unsqueeze(0)  # (1, H, W)
-        B, H, W = msk.shape
-
-        # Add channel dimension for conv2d
-        msk = msk.unsqueeze(1)  # (B, 1, H, W)
-
-        # Create structuring element (kernel)
-        kernel = torch.ones((1, 1, kernel_size, kernel_size), dtype=msk.dtype, device=msk.device)
-
-        result = msk
-        for _ in range(iterations):
-            if operation[:3] == "ero":
-                result = torch.nn.functional.max_pool2d(
-                    1.0 - result, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
-                )
-                result = 1.0 - result
-            elif operation[:3] == "dil":
-                result = torch.nn.functional.max_pool2d(
-                    result, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
-                )
-            else:
-                raise ValueError(f"Unknown operation: {operation}")
-
-        # Remove channel dimension
-        result = result.squeeze(1)  # (B, H, W)
         
-        if invert:
-            result = 1.0 - result
-            result = torch.clamp(result, 0.0, 1.0)
+        print(f"[pseudocomfy] MaskMorphology")
+        print(f"\toperation: {operation}, kernel_size: {kernel_size}, iterations: {iterations}, invert: {invert}")
 
-        print(f"\tresult range: ({result.min():.3f} -> {result.max():.3f})")
-        return (result,)
+        results = []
+        for msk in msks_list:
+            print(f"\tmsk shape:{tuple(msk.shape)}")
+
+            # Ensure batch dimension
+            if msk.ndim == 2:
+                msk = msk.unsqueeze(0)  # (1, H, W)
+            B, H, W = msk.shape
+
+            # Add channel dimension for conv2d
+            msk = msk.unsqueeze(1)  # (B, 1, H, W)
+
+            # Create structuring element (kernel)
+            kernel = torch.ones((1, 1, kernel_size, kernel_size), dtype=msk.dtype, device=msk.device)
+
+            result = msk
+            for _ in range(iterations):
+                if operation[:3] == "ero":
+                    result = torch.nn.functional.max_pool2d(
+                        1.0 - result, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
+                    )
+                    result = 1.0 - result
+                elif operation[:3] == "dil":
+                    result = torch.nn.functional.max_pool2d(
+                        result, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
+                    )
+                else:
+                    raise ValueError(f"Unknown operation: {operation}")
+
+            # Remove channel dimension
+            result = result.squeeze(1)  # (B, H, W)
+            
+            if invert:
+                result = 1.0 - result
+                result = torch.clamp(result, 0.0, 1.0)
+
+            print(f"\tresult range: ({result.min():.3f} -> {result.max():.3f})")
+            results.append(result)
+        return (results,)
 
 
 class PseudoMaskAggregate:
     """
     Utility class for combining a list of masks into a single mask using various arithmetic operations.
     Inputs:
-        msks (list[tensor]): List of mask tensors, each [1, H, W] or [B, H, W], values in [0, 1].
+        msks_list (list[tensor]): List of mask tensors, each [1, H, W] or [B, H, W], values in [0, 1].
         operation (str): Operation to perform. One of:
             - "sum_clamped": Sum all masks, clamp to [0, 1].
             - "sum_normalized": Sum all masks, then normalize result to [0, 1].
@@ -345,7 +407,7 @@ class PseudoMaskAggregate:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "msks": ("MASK", {"forceInput": True, "isList": True}),
+                "msks_list": ("MASK", {"forceInput": True, "isList": True}),
                 "operation": (["sum_clamped", "sum_normalized", "average", "max", "min"], {}),
                 "invert": ("BOOLEAN", {"default": False}),
             }
@@ -357,14 +419,14 @@ class PseudoMaskAggregate:
     FUNCTION = "combine"
     CATEGORY = "Pseudocomfy/Utils"
 
-    def combine(self, msks, operation, invert):
-        # given that INPUT_IS_LIST, msks is a list of masks that should be aggregated
+    def combine(self, msks_list, operation, invert):
+        # given that INPUT_IS_LIST, msks_list is a list of masks
         # if inputs that are meant to be singletons are a list, use the first element
         if isinstance(operation, list) and len(operation)>0: operation = operation[0]
         if isinstance(invert, list) and len(invert)>0: invert = invert[0]
 
         # Stack masks to shape (N, H, W) or (N, 1, H, W)
-        msks = [m.float() for m in msks]
+        msks = [m.float() for m in msks_list]
         stack = torch.stack(msks, dim=0)
         print(f"[pseudocomfy] CombineMasks")
         print(f"\toperation: {operation}")
