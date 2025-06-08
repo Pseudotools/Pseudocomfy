@@ -82,7 +82,7 @@ class PseudoProcessMaterialPrompts:
         mat_txts_lst (list of str): List of material prompt texts.
         mat_imgs_lst (list of tensor): List of image tensors as [1, H, W, 3] corresponding to the material prompts.
         mat_msks_lst (list of tensor): List of mask tensors as [1, H, W] corresponding to the material prompts.
-        scale_to (int): The target dimension for the shorter side of the given masks (options: 512, 1024).
+        scale_msk_to (str): The target dimension for the shorter side of the given masks (options: 512, 1024).
     Outputs:
         mat_txts (list of str): Deep-copied list of material prompt texts.
         mat_imgs (list of tensor): Deep-copied list of image tensors.
@@ -166,7 +166,7 @@ class PseudoProcessImagePrompt:
     Utility class for scaling images and returning both the scaled image and relevant metadata.
     Inputs:
         img (tensor): The input image tensor, expected shape [1, H, W, 3].
-        scale_to (str): The target dimension for the shorter side of the given image ("512" or "1024").
+        scale_img_to (str): The target dimension for the shorter side of the given image ("512" or "1024").
     Outputs:
         scaled_width (int): The width of the scaled image (multiple of 64).
         scaled_height (int): The height of the scaled image (multiple of 64).
