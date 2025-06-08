@@ -308,7 +308,7 @@ class PseudoMaskReshape:
         return {
             "required": {
                 "msks_list": ("MASK",),
-                "operation": (["erode (shrink white areas)", "dilate (grow white areas)"], {}),
+                "operation": (["erode (shrink white areas)", "dilate (grow white areas)"], {"default": "dilate (grow white areas)"}),
                 "kernel_size": ("INT", {
                     "default": 3,
                     "min": 1,
