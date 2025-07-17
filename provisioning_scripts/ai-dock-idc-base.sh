@@ -9,13 +9,13 @@ PIP_PACKAGES=(
 NODES=(
     "https://github.com/ltdrdata/ComfyUI-Manager"
     "https://github.com/Pseudotools/Pseudocomfy"
-    "https://github.com/Pseudotools/ComfyUI_IPAdapter_plus"
+    #"https://github.com/Pseudotools/ComfyUI_IPAdapter_plus"
 )
 CHECKPOINT_MODELS=(
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/sd_xl_base_1.0.safetensors"
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/sd_xl_refiner_1.0.safetensors"    
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/Juggernaut_X_RunDiffusion_Hyper.safetensors"
-    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/albedobaseXL_v21.safetensors"
+    #"https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/albedobaseXL_v21.safetensors"
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/checkpoints/realvisxlV50_v50LightningBakedvae.safetensors"    
 )
 UNET_MODELS=()
@@ -24,19 +24,19 @@ VAE_MODELS=()
 ESRGAN_MODELS=()
 CONTROLNET_MODELS=(
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/controlnet/control-lora-depth-rank128.safetensors"
-    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/controlnet/diffusion_pytorch_model.safetensors"
+    #"https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/controlnet/diffusion_pytorch_model.safetensors"
 )
 IP_ADAPTER_MODELS=(
-    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/ipadapter/ip-adapter-plus_sd15.safetensors"
+    #"https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/ipadapter/ip-adapter-plus_sd15.safetensors"
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/ipadapter/ip-adapter-plus_sdxl_vit-h.safetensors"
 )
 CLIP_VISION_MODELS=(
     "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
-    "https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/clip_vision/CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors"
+    #"https://huggingface.co/pseudotools/pseudocomfy-models/resolve/main/clip_vision/CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors"
 )
 CLIP_VISION_FILENAMES=(
     "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
-    "CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors"
+    #"CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors"
 )
 
 
