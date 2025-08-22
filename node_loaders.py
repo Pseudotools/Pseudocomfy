@@ -260,14 +260,13 @@ def decode_mask(base64_mask, width, height, package_version):
     pil_img = node_helpers.pillow(Image.open, io.BytesIO(image_data))
     pil_img = pil_img.convert("L")
     image_array = np.array(pil_img).astype(np.float32) / 255.0  # shape [H, W]
-    print(f"[decode_mask] numpy image_array shape: {image_array.shape}, dtype: {image_array.dtype}")
+    #print(f"[decode_mask] numpy image_array shape: {image_array.shape}, dtype: {image_array.dtype}")
     if image_array.ndim == 2:
         image_tensor = torch.from_numpy(image_array).unsqueeze(0)  # [1, H, W]
-        print(f"[decode_mask] torch image_tensor shape (after unsqueeze): {image_tensor.shape}")
-    elif image_array.ndim == 3 and image_array.shape[2] == 1:
-        image_tensor = torch.from_numpy(image_array).permute(2, 0, 1)  # [1, H, W]
-        print(f"[decode_mask] torch image_tensor shape (after permute): {image_tensor.shape}")
-    else:
+        #print(f"[decode_mask] torch image_tensor shape (after unsqueeze): {image_tensor.shape}")
+    else:       
+        print(f"[pseudocomfy] PseudoUnpackModelSnapshot.decode_mask\t numpy image_array shape: {image_array.shape}, dtype: {image_array.dtype}")
+        print(f"[pseudocomfy] PseudoUnpackModelSnapshot.decode_mask\t torch image_tensor shape (after unsqueeze): {image_tensor.shape} (expected [1, H, W])")
         raise ValueError(f"Decoded mask has unexpected shape: {image_array.shape}")
     return image_tensor
 
