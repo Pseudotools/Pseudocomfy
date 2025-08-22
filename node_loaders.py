@@ -199,7 +199,7 @@ class PseudoUnpackModelSnapshot:
         for img in masks_base64:
             #scaled_mask = decode_and_scale_mask(img, scale_img_by, width, height)
             #scaled_mask = scale_tensor_image( decode_mask(img, width_given, height_given), width, height )
-            mat_msks.append(decode_mask(img, width_given, height_given))
+            mat_msks.append(decode_mask(img, width_given, height_given, package_version))
 
         mat_imgs = []
         for img in mat_imgs_base64:
@@ -243,14 +243,34 @@ class PseudoUnpackModelSnapshot:
 # ==============================================================================
 
 
-def decode_mask(base64_mask, width, height):
+def decode_mask(base64_mask, width, height, package_version):
+
+    if package_version == 0.0:
+        # old masks were stored a zipped flat binary array
+        image_data = base64.b64decode(base64_mask)
+        decompressed_data = gzip.decompress(image_data)
+        flat_array = np.frombuffer(decompressed_data, dtype=np.uint8)
+        reshaped_array = flat_array.reshape((height, width))
+        # scale up to 0/255 for display, but output shape [1, H, W]
+        image_tensor = torch.from_numpy((reshaped_array * 255).astype(np.float32) / 255.0).unsqueeze(0)
+        return image_tensor  # [1, H, W]
+
+    # masks are stored as greyscale images
     image_data = base64.b64decode(base64_mask)
-    decompressed_data = gzip.decompress(image_data)
-    flat_array = np.frombuffer(decompressed_data, dtype=np.uint8)
-    reshaped_array = flat_array.reshape((height, width))
-    # scale up to 0/255 for display, but output shape [1, H, W]
-    image_tensor = torch.from_numpy((reshaped_array * 255).astype(np.float32) / 255.0).unsqueeze(0)
-    return image_tensor  # [1, H, W]
+    pil_img = node_helpers.pillow(Image.open, io.BytesIO(image_data))
+    pil_img = pil_img.convert("L")
+    image_array = np.array(pil_img).astype(np.float32) / 255.0  # shape [H, W]
+    print(f"[decode_mask] numpy image_array shape: {image_array.shape}, dtype: {image_array.dtype}")
+    if image_array.ndim == 2:
+        image_tensor = torch.from_numpy(image_array).unsqueeze(0)  # [1, H, W]
+        print(f"[decode_mask] torch image_tensor shape (after unsqueeze): {image_tensor.shape}")
+    elif image_array.ndim == 3 and image_array.shape[2] == 1:
+        image_tensor = torch.from_numpy(image_array).permute(2, 0, 1)  # [1, H, W]
+        print(f"[decode_mask] torch image_tensor shape (after permute): {image_tensor.shape}")
+    else:
+        raise ValueError(f"Decoded mask has unexpected shape: {image_array.shape}")
+    return image_tensor
+
 
 def decode_rgb_image(base64_img):
     image_data = base64.b64decode(base64_img)

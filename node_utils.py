@@ -288,7 +288,7 @@ class PseudoMaskInvert:
             print(f"\tmsk shape:{tuple(msk.shape)}")
             print(f"\tinverting mask of ({mask_min:.3f} -> {mask_max:.3f}) to ({1-mask_max:.3f} -> {1-mask_min:.3f})")
             inverted = 1.0 - msk
-            inverted = torch.clamp(inverted, 0.0, 1.0)
+            inverted = torch.clamp(inverted, 0.0, 1.0) 
             results.append(inverted)
         return (results,)
 
