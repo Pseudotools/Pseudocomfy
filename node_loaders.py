@@ -157,7 +157,7 @@ class PseudoUnpackModelSnapshot:
 
     def process_json(self, json_data):
         expected_keys = [
-            'pseudorandom_spatial_package_version',
+            'pseudorandom_snapshot_version',
             'map_semantic',
             'pmts_environment',
             'width',
@@ -167,7 +167,7 @@ class PseudoUnpackModelSnapshot:
         missing_keys = [k for k in expected_keys if k not in json_data]
         if missing_keys: raise KeyError(f"Missing required keys in json_data: {missing_keys}")      
 
-        package_version = json_data['pseudorandom_spatial_package_version']
+        package_version = json_data['pseudorandom_snapshot_version']
         print(f"[pseudocomfy] UnpackModelSnapshot\t spatial_package_version: {package_version}")
         # TODO: check package_version against current min_version (0.0 at time of writing)
 

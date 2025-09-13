@@ -37,7 +37,7 @@
          ],
          "img_depth": "BASE 64 ENCODED IMAGE",
          "img_edge": "optional BASE 64 ENCODED IMAGE"
-         "pseudorandom_spatial_package_version": "{{schema version that this package adheres to in x.xx format}}",	
+         "pseudorandom_snapshot_version": "{{schema version that this package adheres to in x.xx format}}",	
       }
    ```
 
