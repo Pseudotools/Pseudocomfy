@@ -6,7 +6,7 @@ This document describes **two successive versions** of the Snapshot (also called
 * **Next version (v0.4)** — a simplified, forward-looking format aligned with the [Workflow Authoring Guide](https://github.com/Pseudotools/pt-essential-workflows/blob/main/AUTHORING_GUIDE.md).
 
 A snapshot captures all per-image data a workflow needs:  
-global environmental prompts, per-region material prompts and masks, and optional full-frame guidance images (depth, edge, style).
+user-defined global prompts, region-specific material prompts and masks, and optional full-frame guidance images (depth, edge, style).
 
 ---
 
@@ -27,7 +27,7 @@ The v0.1 format is what Pseudocomfy currently expects.
 | **`img_edge`**                      | base64 string    | optional | Base-64 encoded RGB edge or linework pass.                                   |
 | **`img_style`**                     | base64 string    | optional | Base-64 encoded RGB global style reference image.                             |
 
-All images are inlined as **base-64 PNG or JPEG** strings.
+All images are included directly in the JSON as **base-64 PNG or JPEG** strings.
 
 ### `pmts_environment`
 
@@ -76,34 +76,44 @@ All images are inlined as **base-64 PNG or JPEG** strings.
 
 ## 2. Next Structure (v0.4 — Proposed)
 
-The v0.4 format simplifies naming and aligns with the **Workflow Authoring Guide**.
-It keeps the same conceptual layers but uses clearer field names and groups all full-frame guidance (depth, edge, and style) together.
+The v0.4 format simplifies naming and groups related data into **three clear categories**:
+
+* **`global_guidance`** – user-defined global properties and prompts.
+* **`regional_guidance`** – region-specific material prompts and masks.
+* **`spatial_guidance`** – full-frame guidance images derived from the 3D model.
 
 ### Top-Level Keys
 
-| Key                                 | Type             | Required | Description                                                             |
-| ----------------------------------- | ---------------- | -------- | ----------------------------------------------------------------------- |
-| **`pseudorandom_snapshot_version`** | number           | ✅        | Must be `0.4`.                                                          |
-| **`width`**                         | integer          | ✅        | Target render width in pixels.                                          |
-| **`height`**                        | integer          | ✅        | Target render height in pixels.                                         |
-| **`environmental_prompts`**         | object           | ✅        | Global scene/style/negative text prompts.                               |
-| **`material_prompts`**              | array of objects | ✅        | Region-specific material prompts and masks.                             |
-| **`guidance`**                      | object           | optional | Full-frame guidance maps (depth, edge, style). At least one is typical. |
+| Key                                 | Type             | Required | Description                                                                      |
+| ----------------------------------- | ---------------- | -------- | -------------------------------------------------------------------------------- |
+| **`pseudorandom_snapshot_version`** | number           | ✅        | Must be `0.4`.                                                                   |
+| **`width`**                         | integer          | ✅        | Target render width in pixels.                                                   |
+| **`height`**                        | integer          | ✅        | Target render height in pixels.                                                  |
+| **`global_guidance`**               | object           | ✅        | Global user-defined prompts and style image.                                     |
+| **`regional_guidance`**             | array of objects | ✅        | Region-specific material prompts and masks.                                      |
+| **`spatial_guidance`**              | object           | optional | Model-derived full-frame guidance maps. At least one entry is typically present. |
 
 All images remain base-64 encoded (PNG or JPEG).
 
-### `environmental_prompts`
+---
 
-| Key                | Type   | Required | Description                                     |
-| ------------------ | ------ | -------- | ----------------------------------------------- |
-| **`txt_scene`**    | string | ✅        | Scene or composition description.               |
-| **`txt_style`**    | string | ✅        | Global stylistic description (lighting, lens…). |
-| **`txt_negative`** | string | ✅        | Negative prompt describing elements to avoid.   |
+### `global_guidance`
 
-### `material_prompts`
+User-defined properties that describe the entire scene.
 
-Each object describes one region.
-At least one of **`txt`** or **`img`** must be present.
+| Key                | Type          | Required | Description                                     |
+| ------------------ | ------------- | -------- | ----------------------------------------------- |
+| **`txt_scene`**    | string        | ✅        | Scene or composition description.               |
+| **`txt_style`**    | string        | ✅        | Global stylistic description (lighting, lens…). |
+| **`txt_negative`** | string        | ✅        | Negative prompt describing elements to avoid.   |
+| **`img_style`**    | base64 string | optional | Full-frame style reference image (base64 RGB).  |
+
+---
+
+### `regional_guidance`
+
+Region-specific prompts describing materials or object details.
+Each entry must provide a **mask** and at least one of `txt` or `img`.
 
 | Key        | Type                  | Required | Description                                         |
 | ---------- | --------------------- | -------- | --------------------------------------------------- |
@@ -112,16 +122,20 @@ At least one of **`txt`** or **`img`** must be present.
 | **`mask`** | base64 string         | ✅        | Region mask image (same `width` × `height`).        |
 | **`pct`**  | number                | optional | Optional coverage or weighting factor.              |
 
-### `guidance`
+---
 
-All full-frame conditioning maps now live together.
-Each is optional, but **at least one (depth, edge, or style) is typically present**.
+### `spatial_guidance`
 
-| Key         | Type          | Required | Description                                    |
-| ----------- | ------------- | -------- | ---------------------------------------------- |
-| **`depth`** | base64 string | optional | Depth map for geometry guidance.               |
-| **`edge`**  | base64 string | optional | Edge map for contour or linework guidance.     |
-| **`style`** | base64 string | optional | Full-frame style reference image (base64 RGB). |
+Model-derived full-frame guidance maps that help drive geometry or composition.
+Each entry is optional, but **at least one is typically present**.
+
+| Key         | Type          | Required | Description                                  |
+| ----------- | ------------- | -------- | -------------------------------------------- |
+| **`depth`** | base64 string | optional | Depth map for geometry guidance.             |
+| **`edge`**  | base64 string | optional | Edge or linework map for contour guidance.   |
+| *(future)*  | base64 string | optional | Additional derived maps such as normals etc. |
+
+---
 
 ### Example (v0.4)
 
@@ -130,12 +144,15 @@ Each is optional, but **at least one (depth, edge, or style) is typically presen
   "pseudorandom_snapshot_version": 0.4,
   "width": 1600,
   "height": 900,
-  "environmental_prompts": {
+
+  "global_guidance": {
     "txt_scene": "Two-story timber atrium with mezzanine ring and clerestory.",
     "txt_style": "Soft daylight, neutral white balance, editorial photo.",
-    "txt_negative": "No text, no watermark, no warped structure."
+    "txt_negative": "No text, no watermark, no warped structure.",
+    "img_style": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ..."
   },
-  "material_prompts": [
+
+  "regional_guidance": [
     {
       "txt": "white oak planks, matte finish, tight grain",
       "img": null,
@@ -149,10 +166,10 @@ Each is optional, but **at least one (depth, edge, or style) is typically presen
       "pct": 12.7
     }
   ],
-  "guidance": {
+
+  "spatial_guidance": {
     "depth": "data:image/png;base64,iVBORw0KGgoAAA...",
-    "edge":  "data:image/png;base64,iVBORw0KGgoAAA...",
-    "style": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ..."
+    "edge":  "data:image/png;base64,iVBORw0KGgoAAA..."
   }
 }
 ```
@@ -161,12 +178,17 @@ Each is optional, but **at least one (depth, edge, or style) is typically presen
 
 ## 3. Summary of Key Changes
 
-| Aspect                 | v0.1 (Current)                                                   | v0.4 (Next)                                                                                          |
-| ---------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Global prompts**     | `pmts_environment` with `pmt_scene`, `pmt_style`, `pmt_negative` | `environmental_prompts` with `txt_scene`, `txt_style`, `txt_negative`                                |
-| **Per-region prompts** | `map_semantic` with `pmt_txt`, `pmt_img`, `mask`, `pct`          | `material_prompts` with `txt`, `img`, `mask`, `pct`                                                  |
-| **Guidance maps**      | `img_depth` required, `img_edge` optional, `img_style` optional  | `guidance.depth`, `guidance.edge`, `guidance.style` all optional, but typically at least one present |
-| **Schema version**     | `pseudorandom_snapshot_version`: `0.1`                           | `pseudorandom_snapshot_version`: `0.4`                                                               |
-| **Naming**             | Mixed prefixes (`pmt_*`, `img_*`)                                | Short, consistent prefixes (`txt_*`, `img_*` inside `guidance`) aligned with workflow guide          |
+| Aspect                 | v0.1 (Current)                                                   | v0.4 (Next)                                                                                  |
+| ---------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Global prompts**     | `pmts_environment` with `pmt_scene`, `pmt_style`, `pmt_negative` | `global_guidance` with `txt_scene`, `txt_style`, `txt_negative`, `img_style`                 |
+| **Per-region prompts** | `map_semantic` with `pmt_txt`, `pmt_img`, `mask`, `pct`          | `regional_guidance` with `txt`, `img`, `mask`, `pct`                                         |
+| **Guidance maps**      | `img_depth` required, `img_edge` optional, `img_style` optional  | `spatial_guidance` with `depth`, `edge`, and any other model-derived maps (e.g., normals)    |
+| **Schema version**     | `pseudorandom_snapshot_version`: `0.1`                           | `pseudorandom_snapshot_version`: `0.4`                                                       |
+| **Naming**             | Mixed prefixes (`pmt_*`, `img_*`)                                | Clean three-category layout with consistent naming and `_guidance` concept where appropriate |
 
+---
+
+**In brief:**
+The **current v0.1** snapshot meets today’s loader requirements.
+The **proposed v0.4** snapshot introduces three explicit categories—`global_guidance`, `regional_guidance`, and `spatial_guidance`—to clarify meaning, improve consistency with workflow capabilities, and simplify future expansion.
 
