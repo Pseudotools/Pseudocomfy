@@ -1,62 +1,52 @@
-# Pseudocomfy Snapshot Specification
+# Pseudorandom Snapshot Specification
 
-*(Spatial Package JSON – current expected structure)*
+This document describes **two successive versions** of the Snapshot (also called a *Spatial Package*) schema used in the Pseudotools / Pseudocomfy ecosystem:
 
-A **Snapshot** (also called a *Spatial Package*) captures all of the per-image data a Pseudocomfy workflow needs:
-global scene/style prompts, per-object material prompts and masks, and full-frame guidance images such as depth or edge maps.
-This document describes the structure that is expected by the current loader and unpacker nodes.
+* **Current version (v0.1)** — the structure used by today’s loader and unpacker nodes.  
+* **Next version (v0.4)** — a simplified, forward-looking format aligned with the [Workflow Authoring Guide](https://github.com/Pseudotools/pt-essential-workflows/blob/main/AUTHORING_GUIDE.md).
 
----
-
-## Top-Level Keys
-
-| Key                                 | Type             | Required | Description                                                    |
-| ----------------------------------- | ---------------- | -------- | -------------------------------------------------------------- |
-| **`pseudorandom_snapshot_version`** | number           | ✅        | Schema version of the snapshot (e.g. `0.1`).                   |
-| **`width`**                         | integer          | ✅        | Target render width in pixels.                                 |
-| **`height`**                        | integer          | ✅        | Target render height in pixels.                                |
-| **`pmts_environment`**              | object           | ✅        | Global environment prompts; see below.                         |
-| **`map_semantic`**                  | array of objects | ✅        | List of region-specific material prompts and masks; see below. |
-| **`img_depth`**                     | base64 string    | ✅        | Base-64 encoded RGB image representing a full-frame depth map. |
-| **`img_edge`**                      | base64 string    | optional | Base-64 encoded RGB image providing an edge or linework pass.  |
-| **`img_style`**                     | base64 string    | optional | Base-64 encoded RGB image used as a global style reference.    |
-
-All images are included directly in the JSON as **base-64 encoded strings** (PNG or JPEG).
+A snapshot captures all per-image data a workflow needs:  
+global environmental prompts, per-region material prompts and masks, and optional full-frame guidance images (depth, edge, style).
 
 ---
 
-## `pmts_environment`
+## 1. Current Structure (v0.1)
 
-An object providing global prompts that apply to the entire render:
+The v0.1 format is what Pseudocomfy currently expects.
 
-| Key                | Type   | Required | Description                                                            |
-| ------------------ | ------ | -------- | ---------------------------------------------------------------------- |
-| **`pmt_scene`**    | string | ✅        | Scene or composition description.                                      |
-| **`pmt_style`**    | string | ✅        | Global stylistic description (lighting, lens, medium, etc.).           |
-| **`pmt_negative`** | string | ✅        | Negative prompt for elements to avoid (e.g., *no text, no watermark*). |
+### Top-Level Keys
 
-All three keys are required.
+| Key                                 | Type             | Required | Description                                                                 |
+| ----------------------------------- | ---------------- | -------- | --------------------------------------------------------------------------- |
+| **`pseudorandom_snapshot_version`** | number           | ✅       | Schema version of the snapshot (e.g. `0.1`).                                 |
+| **`width`**                         | integer          | ✅       | Target render width in pixels.                                               |
+| **`height`**                        | integer          | ✅       | Target render height in pixels.                                              |
+| **`pmts_environment`**              | object           | ✅       | Global environment prompts.                                                  |
+| **`map_semantic`**                  | array of objects | ✅       | Region-specific material prompts and masks.                                   |
+| **`img_depth`**                     | base64 string    | ✅       | Base-64 encoded RGB depth map.                                               |
+| **`img_edge`**                      | base64 string    | optional | Base-64 encoded RGB edge or linework pass.                                   |
+| **`img_style`**                     | base64 string    | optional | Base-64 encoded RGB global style reference image.                             |
 
----
+All images are inlined as **base-64 PNG or JPEG** strings.
 
-## `map_semantic`
+### `pmts_environment`
 
-An array of objects describing **per-region material prompts**.
-Each entry defines a single masked region and may include text and/or image guidance.
+| Key                | Type   | Required | Description                                      |
+| ------------------ | ------ | -------- | ------------------------------------------------ |
+| **`pmt_scene`**    | string | ✅       | Scene or composition description.                |
+| **`pmt_style`**    | string | ✅       | Global stylistic description (lighting, lens…).  |
+| **`pmt_negative`** | string | ✅       | Negative prompt describing elements to avoid.     |
 
-| Key           | Type                  | Required | Description                                                                                                     |
-| ------------- | --------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
-| **`pmt_txt`** | string or null        | optional | Text prompt describing the object or material in this region. May be null or empty.                             |
-| **`pmt_img`** | base64 string or null | optional | Base-64 encoded RGB image giving a visual reference for this region. May be null or empty.                      |
-| **`mask`**    | base64 string         | ✅        | Base-64 encoded greyscale image that defines the region mask. Must match the overall `width` × `height`.        |
-| **`pct`**     | number                | optional | Intended weight or blend factor (0.0–1.0). Present for forward compatibility; not currently used by the loader. |
+### `map_semantic`
 
-Each object in `map_semantic` must include a `mask`.
-The number of `pmt_txt`, `pmt_img`, and `mask` entries must be consistent across the array.
+| Key           | Type                  | Required | Description                                                           |
+| ------------- | --------------------- | -------- | --------------------------------------------------------------------- |
+| **`pmt_txt`** | string or null        | optional | Text prompt for the region’s object or material.                      |
+| **`pmt_img`** | base64 string or null | optional | Reference image for the region.                                       |
+| **`mask`**    | base64 string         | ✅       | Greyscale mask (must match `width`×`height`).                         |
+| **`pct`**     | number                | optional | Optional weighting or coverage factor.                                 |
 
----
-
-## Minimal Example
+### Example (v0.1)
 
 ```json
 {
@@ -72,30 +62,111 @@ The number of `pmt_txt`, `pmt_img`, and `mask` entries must be consistent across
     {
       "pmt_txt": "mid-century modern farmhouse with Shou Sugi Ban siding",
       "pmt_img": null,
-      "mask": "<base64-encoded greyscale image>",
+      "mask": "<base64 mask>",
       "pct": 0.75
-    },
-    {
-      "pmt_txt": "industrial silo, Lloyd's building by Richard Rogers",
-      "pmt_img": null,
-      "mask": "<base64-encoded greyscale image>",
-      "pct": 0.50
     }
   ],
-  "img_depth": "<base64-encoded RGB image>",
+  "img_depth": "<base64 depth map>",
   "img_edge": null,
   "img_style": null
+}
+````
+
+---
+
+## 2. Next Structure (v0.4 — Proposed)
+
+The v0.4 format simplifies naming and aligns with the **Workflow Authoring Guide**.
+It keeps the same conceptual layers but uses clearer field names and groups all full-frame guidance (depth, edge, and style) together.
+
+### Top-Level Keys
+
+| Key                                 | Type             | Required | Description                                                             |
+| ----------------------------------- | ---------------- | -------- | ----------------------------------------------------------------------- |
+| **`pseudorandom_snapshot_version`** | number           | ✅        | Must be `0.4`.                                                          |
+| **`width`**                         | integer          | ✅        | Target render width in pixels.                                          |
+| **`height`**                        | integer          | ✅        | Target render height in pixels.                                         |
+| **`environmental_prompts`**         | object           | ✅        | Global scene/style/negative text prompts.                               |
+| **`material_prompts`**              | array of objects | ✅        | Region-specific material prompts and masks.                             |
+| **`guidance`**                      | object           | optional | Full-frame guidance maps (depth, edge, style). At least one is typical. |
+
+All images remain base-64 encoded (PNG or JPEG).
+
+### `environmental_prompts`
+
+| Key                | Type   | Required | Description                                     |
+| ------------------ | ------ | -------- | ----------------------------------------------- |
+| **`txt_scene`**    | string | ✅        | Scene or composition description.               |
+| **`txt_style`**    | string | ✅        | Global stylistic description (lighting, lens…). |
+| **`txt_negative`** | string | ✅        | Negative prompt describing elements to avoid.   |
+
+### `material_prompts`
+
+Each object describes one region.
+At least one of **`txt`** or **`img`** must be present.
+
+| Key        | Type                  | Required | Description                                         |
+| ---------- | --------------------- | -------- | --------------------------------------------------- |
+| **`txt`**  | string or null        | optional | Region-specific text prompt for material or object. |
+| **`img`**  | base64 string or null | optional | Region-specific reference image.                    |
+| **`mask`** | base64 string         | ✅        | Region mask image (same `width` × `height`).        |
+| **`pct`**  | number                | optional | Optional coverage or weighting factor.              |
+
+### `guidance`
+
+All full-frame conditioning maps now live together.
+Each is optional, but **at least one (depth, edge, or style) is typically present**.
+
+| Key         | Type          | Required | Description                                    |
+| ----------- | ------------- | -------- | ---------------------------------------------- |
+| **`depth`** | base64 string | optional | Depth map for geometry guidance.               |
+| **`edge`**  | base64 string | optional | Edge map for contour or linework guidance.     |
+| **`style`** | base64 string | optional | Full-frame style reference image (base64 RGB). |
+
+### Example (v0.4)
+
+```json
+{
+  "pseudorandom_snapshot_version": 0.4,
+  "width": 1600,
+  "height": 900,
+  "environmental_prompts": {
+    "txt_scene": "Two-story timber atrium with mezzanine ring and clerestory.",
+    "txt_style": "Soft daylight, neutral white balance, editorial photo.",
+    "txt_negative": "No text, no watermark, no warped structure."
+  },
+  "material_prompts": [
+    {
+      "txt": "white oak planks, matte finish, tight grain",
+      "img": null,
+      "mask": "data:image/png;base64,iVBORw0KGgoAAA...",
+      "pct": 38.2
+    },
+    {
+      "txt": null,
+      "img": "data:image/png;base64,iVBORw0KGgoAAA...",
+      "mask": "data:image/png;base64,iVBORw0KGgoAAA...",
+      "pct": 12.7
+    }
+  ],
+  "guidance": {
+    "depth": "data:image/png;base64,iVBORw0KGgoAAA...",
+    "edge":  "data:image/png;base64,iVBORw0KGgoAAA...",
+    "style": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ..."
+  }
 }
 ```
 
 ---
 
-## Summary
+## 3. Summary of Key Changes
 
-A Pseudocomfy Snapshot is a single JSON file with:
+| Aspect                 | v0.1 (Current)                                                   | v0.4 (Next)                                                                                          |
+| ---------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Global prompts**     | `pmts_environment` with `pmt_scene`, `pmt_style`, `pmt_negative` | `environmental_prompts` with `txt_scene`, `txt_style`, `txt_negative`                                |
+| **Per-region prompts** | `map_semantic` with `pmt_txt`, `pmt_img`, `mask`, `pct`          | `material_prompts` with `txt`, `img`, `mask`, `pct`                                                  |
+| **Guidance maps**      | `img_depth` required, `img_edge` optional, `img_style` optional  | `guidance.depth`, `guidance.edge`, `guidance.style` all optional, but typically at least one present |
+| **Schema version**     | `pseudorandom_snapshot_version`: `0.1`                           | `pseudorandom_snapshot_version`: `0.4`                                                               |
+| **Naming**             | Mixed prefixes (`pmt_*`, `img_*`)                                | Short, consistent prefixes (`txt_*`, `img_*` inside `guidance`) aligned with workflow guide          |
 
-* **Global prompts** (`pmts_environment`) for scene, style, and negatives.
-* **Per-region definitions** (`map_semantic`) combining optional text prompts, optional reference images, and required masks.
-* **Full-frame guidance images** (`img_depth` required; `img_edge` and `img_style` optional), all as base-64 encoded images.
 
-This specification reflects the structure required by the current Pseudocomfy loader and unpacker nodes.
