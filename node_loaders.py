@@ -83,8 +83,11 @@ class PseudoLoadModelSnapshot:
 class PseudoUnpackModelSnapshot:
     """
     Processor class for unpacking a model snapshot JSON into its constituent components for further processing.
+    Supports both v0.1 (legacy) and v0.4 (current) snapshot formats with automatic detection and backwards compatibility.
+    
     Inputs:
         json_data (DICT): Dictionary containing the model snapshot data, including material prompts, images, masks, environment prompts, and image metadata.
+                         Must include 'pseudorandom_snapshot_version' field to determine format version.
     Outputs:
         mat_txts (list of str): List of material prompt texts, one for each material/object in the scene.
         mat_imgs (list of tensor or None): List of decoded RGB image tensors ([1, H, W, 3]) for each material prompt, or None if not available.
@@ -92,20 +95,15 @@ class PseudoUnpackModelSnapshot:
         env_scene (str): Scene description prompt from the environment.
         env_style (str): Style description prompt from the environment.
         env_negative (str): Negative prompt for conditioning from the environment.
-        width (int): Target width for all masks and outputs, as given in the input JSON.
-        height (int): Target height for all masks and outputs, as given in the input JSON.
-        img_depth (tensor): Decoded and resized depth image tensor ([1, H, W, 3]).
+        img_depth (tensor): Decoded depth image tensor ([1, H, W, 3]).
         img_edge (None): Placeholder for edge image output (not supported yet).
         img_style (None): Placeholder for style image output (not supported yet).
     Additional Information:
         - The number of material prompts, images, and masks must be equal.
         - All images and masks are decoded and resized to the specified width and height.
-        - The processor expects specific keys in the input JSON: 
-                'map_semantic', 
-                'pmts_environment', 
-                'width', 
-                'height', 
-                'img_depth'
+        - Supports v0.1 format with keys: 'map_semantic', 'pmts_environment', 'width', 'height', 'img_depth'
+        - Supports v0.4 format with keys: 'global_guidance', 'regional_guidance', 'spatial_guidance', 'width', 'height'
+        - Minimum supported version is 0.1
         - Edge and style image outputs are currently not supported and will be returned as None.
     """
     @classmethod
@@ -156,8 +154,31 @@ class PseudoUnpackModelSnapshot:
     CATEGORY = "Pseudocomfy/IO"
 
     def process_json(self, json_data):
+        MIN_SUPPORTED_VERSION = 0.1
+        MAX_SUPPORTED_VERSION = 0.4
+
+
+        # Check for required version field
+        if 'pseudorandom_snapshot_version' not in json_data:
+            raise KeyError("Missing required key: pseudorandom_snapshot_version")
+            
+        package_version = json_data['pseudorandom_snapshot_version']
+        print(f"[pseudocomfy] UnpackModelSnapshot\tspatial_package_version: {package_version}")
+        
+        # Check package_version against minimum supported version
+        min_supported_version = MIN_SUPPORTED_VERSION
+        if package_version < min_supported_version:
+            raise ValueError(f"[pseudocomfy] UnpackModelSnapshot\tUnsupported spatial package version: {package_version}. Minimum supported version is {min_supported_version}")
+
+        # Handle different protocol versions
+        if package_version == MAX_SUPPORTED_VERSION:
+            return self._process_v04_json(json_data)
+        else:
+            return self._process_v01_json(json_data)
+
+    def _process_v01_json(self, json_data):
+        """Process v0.1 format JSON data"""
         expected_keys = [
-            'pseudorandom_snapshot_version',
             'map_semantic',
             'pmts_environment',
             'width',
@@ -166,10 +187,6 @@ class PseudoUnpackModelSnapshot:
         ]
         missing_keys = [k for k in expected_keys if k not in json_data]
         if missing_keys: raise KeyError(f"Missing required keys in json_data: {missing_keys}")      
-
-        package_version = json_data['pseudorandom_snapshot_version']
-        print(f"[pseudocomfy] UnpackModelSnapshot\t spatial_package_version: {package_version}")
-        # TODO: check package_version against current min_version (0.0 at time of writing)
 
         map_semantic = json_data['map_semantic']
         mat_txts = [entry['pmt_txt'] for entry in map_semantic]
@@ -180,7 +197,6 @@ class PseudoUnpackModelSnapshot:
         if len(mat_txts) != len(masks_base64):
             raise ValueError("Number of prompts and masks must be equal.")        
 
-        
         # base prompts (pos/neg):
         pmts_environment = json_data['pmts_environment']
         env_scene = pmts_environment['pmt_scene']
@@ -192,37 +208,73 @@ class PseudoUnpackModelSnapshot:
 
         # depth image:
         img_depth = json_data['img_depth']
-        #depth_tensor = scale_tensor_image( decode_rgb_image(img_depth), width, height )
         depth_tensor = decode_rgb_image(img_depth)
 
         mat_msks = []
         for img in masks_base64:
-            #scaled_mask = decode_and_scale_mask(img, scale_img_by, width, height)
-            #scaled_mask = scale_tensor_image( decode_mask(img, width_given, height_given), width, height )
-            mat_msks.append(decode_mask(img, width_given, height_given, package_version))
+            mat_msks.append(decode_mask(img, width_given, height_given, 0.1))
 
         mat_imgs = []
         for img in mat_imgs_base64:
             if img is not None:
-                #img = decode_image_prompt(img)
                 img = decode_rgb_image(img) # produces [1, H, W, 3], same as other rgb images
             mat_imgs.append(img)
-       
-        
+
+        return self._return_processed_data(mat_txts, mat_imgs, mat_msks, env_scene, env_style, env_negative, depth_tensor, width_given, height_given)
+
+    def _process_v04_json(self, json_data):
+        """Process v0.4 format JSON data"""
+        expected_keys = [
+            'global_guidance',
+            'regional_guidance',
+            'width',
+            'height'
+        ]
+        missing_keys = [k for k in expected_keys if k not in json_data]
+        if missing_keys: raise KeyError(f"Missing required keys in json_data: {missing_keys}")      
+
+        # Extract regional guidance data
+        regional_guidance = json_data['regional_guidance']
+        mat_txts = [entry.get('txt') for entry in regional_guidance]
+        mat_imgs_base64 = [entry.get('img') for entry in regional_guidance]
+        masks_base64 = [entry['mask'] for entry in regional_guidance]
+
+        if len(mat_txts) != len(masks_base64):
+            raise ValueError("Number of prompts and masks must be equal.")        
+
+        # Extract global guidance data
+        global_guidance = json_data['global_guidance']
+        env_scene = global_guidance['txt_scene']
+        env_style = global_guidance['txt_style']
+        env_negative = global_guidance['txt_negative']
+
+        width_given = json_data['width']
+        height_given = json_data['height']
+
+        # Extract spatial guidance data (depth image)
+        spatial_guidance = json_data.get('spatial_guidance', {})
+        img_depth = spatial_guidance.get('depth')
+        if img_depth is None:
+            raise KeyError("Missing required spatial_guidance.depth in v0.4 format")
+        depth_tensor = decode_rgb_image(img_depth)
+
+        mat_msks = []
+        for img in masks_base64:
+            mat_msks.append(decode_mask(img, width_given, height_given, 0.4))
+
+        mat_imgs = []
+        for img in mat_imgs_base64:
+            if img is not None:
+                img = decode_rgb_image(img) # produces [1, H, W, 3], same as other rgb images
+            mat_imgs.append(img)
+
+        return self._return_processed_data(mat_txts, mat_imgs, mat_msks, env_scene, env_style, env_negative, depth_tensor, width_given, height_given)
+
+    def _return_processed_data(self, mat_txts, mat_imgs, mat_msks, env_scene, env_style, env_negative, depth_tensor, width_given, height_given):
         print(f"\tgiven w,h: ({width_given}, {height_given})")
         print(f"\tdepth_tensor shape: {tuple(depth_tensor.shape)} ([1, H, W, 3] expected)")
         print(f"\tmat txts/imgs/msks lengths: {len(mat_txts)},{len(mat_imgs)},{len(mat_msks)} (all should be equal)")
         if len(mat_msks) > 1: print(f"\tmat_msks shape:{tuple(mat_msks[0].shape)} ([1, H, W] expected)")
-        '''
-        for i, mask in enumerate(mat_msks):
-            print(f"mat_msks[{i}] shape:", mask.shape) # we expect [1, H, W]
-            print(f"mat_msks[{i}] value range: min={mask[0].min().item()}, max={mask[0].max().item()}")
-        for i, img in enumerate(mat_imgs):
-            if img is not None:
-                print(f"mat_imgs[{i}] shape:", img.shape) # we expect [1, H, W, 3]
-            else:
-                print(f"mat_imgs[{i}] is None")
-        '''        
 
         return (
             mat_txts,

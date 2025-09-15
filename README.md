@@ -8,24 +8,26 @@
 ![Workflow Example Img](readme/img.png)
 
 
-## Snapshot (input JSON) format example:
+## Snapshot (input JSON) format examples:
+
+### Version 0.1 (Legacy format - still supported):
    ```sh
       {
-         "width": 0,
-         "height": 0,
+         "width": 832,
+         "height": 512,
          "pmts_environment": 
          {
-            "pmt_scene" : "a prompt describing the scene as a whole",
-            "pmt_style" : "a prompt describing the rendering style",
-            "pmt_negative" : "a prompt describing what should not be in the render",
+            "pmt_scene" : "a farm in the grasslands of Iowa at golden hour",
+            "pmt_style" : "high-quality architectural rendering",
+            "pmt_negative" : "low-res, watermark, ugly",
          },
          "map_semantic": 
          [
             {
-               "pmt_txt": "an text prompt for the object, MAY BE NULL or EMPTY",
-               "pmt_img": "BASE 64 ENCODED BITMAP of a guidence image, MAY BE NULL OR EMPTY", 
+               "pmt_txt": "mid-century modern farmhouse with Shou Sugi Ban siding",
+               "pmt_img": null, 
                "mask": "BASE 64 ENCODED BITMAP",
-               "pct": 0.00 
+               "pct": 0.75 
             },
             {
                "pmt_txt": "an text prompt for the object, MAY BE NULL or EMPTY",
@@ -36,10 +38,46 @@
            ...
          ],
          "img_depth": "BASE 64 ENCODED IMAGE",
-         "img_edge": "optional BASE 64 ENCODED IMAGE"
-         "pseudorandom_snapshot_version": "{{schema version that this package adheres to in x.xx format}}",	
+         "img_edge": "optional BASE 64 ENCODED IMAGE",
+         "img_style": "optional BASE 64 ENCODED IMAGE",
+         "pseudorandom_snapshot_version": 0.1
       }
    ```
+
+### Version 0.4 (Current recommended format):
+   ```sh
+      {
+         "pseudorandom_snapshot_version": 0.4,
+         "width": 1600,
+         "height": 900,
+         "global_guidance": {
+            "txt_scene": "Two-story timber atrium with mezzanine ring and clerestory.",
+            "txt_style": "Soft daylight, neutral white balance, editorial photo.",
+            "txt_negative": "No text, no watermark, no warped structure.",
+            "img_style": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ..."
+         },
+         "regional_guidance": [
+            {
+               "txt": "white oak planks, matte finish, tight grain",
+               "img": null,
+               "mask": "data:image/png;base64,iVBORw0KGgoAAA...",
+               "pct": 38.2
+            },
+            {
+               "txt": null,
+               "img": "data:image/png;base64,iVBORw0KGgoAAA...",
+               "mask": "data:image/png;base64,iVBORw0KGgoAAA...",
+               "pct": 12.7
+            }
+         ],
+         "spatial_guidance": {
+            "depth": "data:image/png;base64,iVBORw0KGgoAAA...",
+            "edge": "data:image/png;base64,iVBORw0KGgoAAA..."
+         }
+      }
+   ```
+
+**Note:** The PseudoUnpackModelSnapshot node supports both v0.1 and v0.4 formats with automatic detection and backwards compatibility. The v0.4 format provides a cleaner structure with three guidance categories: `global_guidance`, `regional_guidance`, and `spatial_guidance`.
 
 ---
 
