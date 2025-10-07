@@ -155,7 +155,7 @@ class PseudoUnpackModelSnapshot:
 
     def process_json(self, json_data):
         MIN_SUPPORTED_VERSION = 0.1
-        MAX_SUPPORTED_VERSION = 0.4
+        CURRENT_SUPPORTED_VERSION = 0.5
 
 
         # Check for required version field
@@ -171,8 +171,8 @@ class PseudoUnpackModelSnapshot:
             raise ValueError(f"[pseudocomfy] UnpackModelSnapshot\tUnsupported spatial package version: {package_version}. Minimum supported version is {min_supported_version}")
 
         # Handle different protocol versions
-        if package_version == MAX_SUPPORTED_VERSION:
-            return self._process_v04_json(json_data)
+        if package_version == CURRENT_SUPPORTED_VERSION:
+            return self._process_v05_json(json_data)
         else:
             return self._process_v01_json(json_data)
 
@@ -222,8 +222,8 @@ class PseudoUnpackModelSnapshot:
 
         return self._return_processed_data(mat_txts, mat_imgs, mat_msks, env_scene, env_style, env_negative, depth_tensor, width_given, height_given)
 
-    def _process_v04_json(self, json_data):
-        """Process v0.4 format JSON data"""
+    def _process_v05_json(self, json_data):
+        """Process v0.5 format JSON data"""
         expected_keys = [
             'global_guidance',
             'regional_guidance',
