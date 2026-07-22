@@ -1,9 +1,10 @@
 from .node_conditioning import *
 from .node_io import *
 from .node_ipadapter_loader import *
-from .node_loaders import *
+from .node_loaders_snapshot import *
 from .node_processing import *
 from .node_utils import *
+from .node_vars import *
 from . import api
 
 
@@ -53,6 +54,9 @@ NODE_CLASS_MAPPINGS = {
 
     "PseudoRemapNormalizedFloat": PseudoRemapNormalizedFloat,
     "PseudoFloatToInt": PseudoFloatToInt,
+
+    # variables
+    "PseudoVarFloat": PseudoVarFloat,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -87,4 +91,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
     "PseudoRemapNormalizedFloat": "Remap Float",
     "PseudoFloatToInt": "Float to Int",
+
+    #variables
+    "PseudoVarFloat": "Float Variable",
 }
