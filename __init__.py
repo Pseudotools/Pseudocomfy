@@ -57,6 +57,8 @@ NODE_CLASS_MAPPINGS = {
 
     # variables
     "PseudoVarFloat": PseudoVarFloat,
+    "PseudoVarInt": PseudoVarInt,
+    "PseudoVarString": PseudoVarString,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -94,4 +96,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
     #variables
     "PseudoVarFloat": "Float Variable",
+    "PseudoVarInt": "Int Variable",
+    "PseudoVarString": "String Variable",
 }
