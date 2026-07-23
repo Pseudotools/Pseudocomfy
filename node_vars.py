@@ -89,3 +89,44 @@ class PseudoVarString:
         print(f"[pseudocomfy] PseudoVarString: {s}")
         return (s,)
 
+
+class PseudoSeed:
+    """
+    Seed node. Produces an integer seed value to feed noise/sampling.
+
+    Unlike the PseudoVar* nodes this is not a variable: it is meant to be
+    dropped onto the canvas wherever a seed is needed and driven externally
+    (e.g. by the Pseudorandom Rhino plugin) rather than hand edited.
+
+    The widget is named "seed" so ComfyUI automatically attaches its
+    standard control_after_generate (fixed / increment / decrement /
+    randomize) behaviour, and so external tooling can set the value via the
+    node's widgets_values in the submitted workflow.
+
+    Inputs:
+        seed (int): The seed value (0 .. 2**64 - 1).
+    Outputs:
+        seed (int): The seed value, passed through.
+    """
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "seed": ("INT", {
+                    "default": 0,
+                    "min": 0,
+                    "max": 0xffffffffffffffff
+                })
+            },
+        }
+
+    RETURN_TYPES = ("INT",)
+    RETURN_NAMES = ("seed",)
+    FUNCTION = "func"
+    CATEGORY = "Pseudocomfy/Vars"
+
+    def func(self, seed):
+        seed = int(seed)
+        print(f"[pseudocomfy] PseudoSeed: {seed}")
+        return (seed,)
+
