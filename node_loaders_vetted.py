@@ -1,6 +1,7 @@
 import requests
 import folder_paths
 import comfy.sd
+import comfy.controlnet
 
 
 SUPABASE_URL = "https://psfxsrilludczykwdyxz.supabase.co/rest/v1"
@@ -41,6 +42,11 @@ _VETTED_MODELS = _fetch_vetted_models()
 _CHECKPOINT_MODELS = [m for m in _VETTED_MODELS if m["category_id"] == 1]
 _CHECKPOINT_NAMES = [m["file_name"] for m in _CHECKPOINT_MODELS] or ["(no vetted checkpoints available)"]
 
+_CONTROLNET_NAMES = (
+    [m["file_name"] for m in _VETTED_MODELS if m["category_id"] == 3]
+    or ["(no vetted controlnet models available)"]
+)
+
 
 class PseudoVettedCheckpointLoader:
     @classmethod
@@ -66,3 +72,26 @@ class PseudoVettedCheckpointLoader:
         )
         print(f"[pseudocomfy] PseudoVettedCheckpointLoader: {model}")
         return out[:3]
+
+
+class PseudoVettedControlNetLoader:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "model": (_CONTROLNET_NAMES, {}),
+            },
+        }
+
+    RETURN_TYPES = ("CONTROL_NET",)
+    RETURN_NAMES = ("control_net",)
+    FUNCTION = "func"
+    CATEGORY = "Pseudocomfy/Loaders"
+
+    def func(self, model):
+        controlnet_path = folder_paths.get_full_path_or_raise("controlnet", model)
+        controlnet = comfy.controlnet.load_controlnet(controlnet_path)
+        if controlnet is None:
+            raise RuntimeError(f"[pseudocomfy] PseudoVettedControlNetLoader: invalid controlnet file: {model}")
+        print(f"[pseudocomfy] PseudoVettedControlNetLoader: {model}")
+        return (controlnet,)
