@@ -1,4 +1,5 @@
 import requests
+import torch
 import folder_paths
 import comfy.sd
 import comfy.controlnet
@@ -51,6 +52,11 @@ _CONTROLNET_NAMES = (
 _LORA_NAMES = (
     [m["file_name"] for m in _VETTED_MODELS if m["category_id"] == 5]
     or ["(no vetted lora models available)"]
+)
+
+_CLIP_NAMES = (
+    [m["file_name"] for m in _VETTED_MODELS if m["category_id"] == 7]
+    or ["(no vetted CLIP models available)"]
 )
 
 
@@ -137,3 +143,45 @@ class PseudoVettedLoraLoader:
         model_out, _ = comfy.sd.load_lora_for_models(model, None, lora_weights, strength_model, 0, lora_metadata=lora_metadata)
         print(f"[pseudocomfy] PseudoVettedLoraLoader: {lora} (strength: {strength_model})")
         return (model_out,)
+
+
+class PseudoVettedClipLoader:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "model": (_CLIP_NAMES, {}),
+                "type": (["stable_diffusion", "stable_cascade", "sd3", "flux"], {}),
+                "device": (["default", "cpu"], {"advanced": True}),
+            },
+        }
+
+    RETURN_TYPES = ("CLIP",)
+    RETURN_NAMES = ("clip",)
+    FUNCTION = "func"
+    CATEGORY = "Pseudocomfy/Loaders"
+
+    def func(self, model, type="stable_diffusion", device="default"):
+        if model == "(no vetted CLIP models available)":
+            raise RuntimeError("[pseudocomfy] PseudoVettedClipLoader: no vetted CLIP models available in the database.")
+
+        clip_type_map = {
+            "stable_cascade": comfy.sd.CLIPType.STABLE_CASCADE,
+            "sd3": comfy.sd.CLIPType.SD3,
+            "flux": comfy.sd.CLIPType.FLUX,
+        }
+        clip_type = clip_type_map.get(type, comfy.sd.CLIPType.STABLE_DIFFUSION)
+
+        model_options = {}
+        if device == "cpu":
+            model_options["load_device"] = model_options["offload_device"] = torch.device("cpu")
+
+        clip_path = folder_paths.get_full_path_or_raise("clip", model)
+        clip = comfy.sd.load_clip(
+            ckpt_paths=[clip_path],
+            embedding_directory=folder_paths.get_folder_paths("embeddings"),
+            clip_type=clip_type,
+            model_options=model_options,
+        )
+        print(f"[pseudocomfy] PseudoVettedClipLoader: {model}")
+        return (clip,)
