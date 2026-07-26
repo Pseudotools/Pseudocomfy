@@ -59,6 +59,11 @@ _CLIP_NAMES = (
     or ["(no vetted CLIP models available)"]
 )
 
+_VAE_NAMES = (
+    [m["file_name"] for m in _VETTED_MODELS if m["category_id"] == 6]
+    or ["(no vetted VAE models available)"]
+)
+
 
 class PseudoVettedCheckpointLoader:
     @classmethod
@@ -185,3 +190,24 @@ class PseudoVettedClipLoader:
         )
         print(f"[pseudocomfy] PseudoVettedClipLoader: {model}")
         return (clip,)
+
+
+class PseudoVettedVaeLoader:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {"model": (_VAE_NAMES, {})}}
+
+    RETURN_TYPES = ("VAE",)
+    RETURN_NAMES = ("vae",)
+    FUNCTION = "func"
+    CATEGORY = "Pseudocomfy/Loaders"
+
+    def func(self, model):
+        if model == "(no vetted VAE models available)":
+            raise RuntimeError("[pseudocomfy] PseudoVettedVaeLoader: no vetted VAE models available in the database.")
+        vae_path = folder_paths.get_full_path_or_raise("vae", model)
+        sd, metadata = comfy.utils.load_torch_file(vae_path, return_metadata=True)
+        vae = comfy.sd.VAE(sd=sd, metadata=metadata)
+        vae.throw_exception_if_invalid()
+        print(f"[pseudocomfy] PseudoVettedVaeLoader: {model}")
+        return (vae,)
