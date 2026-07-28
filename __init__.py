@@ -29,6 +29,7 @@ NODE_CLASS_MAPPINGS = {
     "PseudoLoadModelSnapshot": PseudoLoadModelSnapshot,
     "PseudoUnpackModelSnapshot": PseudoUnpackModelSnapshot,
     "PseudoVettedCheckpointLoader": PseudoVettedCheckpointLoader,
+    "PseudoVettedControlNetLoader": PseudoVettedControlNetLoader,
 
     # io
     "PseudoSaveImageWithEmbeddedMasks": PseudoSaveImageWithEmbeddedMasks,
@@ -72,6 +73,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PseudoLoadModelSnapshot": "Load Model Snapshot",
     "PseudoUnpackModelSnapshot": "Unpack Model Snapshot",
     "PseudoVettedCheckpointLoader": "Vetted Checkpoint Loader",
+    "PseudoVettedControlNetLoader": "Vetted ControlNet Loader",
 
     # io
     "PseudoSaveImageWithEmbeddedMasks": "Save Image with Embedded Masks",
