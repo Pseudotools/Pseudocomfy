@@ -2,6 +2,7 @@ import requests
 import folder_paths
 import comfy.sd
 import comfy.controlnet
+import comfy.utils
 
 
 SUPABASE_URL = "https://psfxsrilludczykwdyxz.supabase.co/rest/v1"
@@ -45,6 +46,11 @@ _CHECKPOINT_NAMES = [m["file_name"] for m in _CHECKPOINT_MODELS] or ["(no vetted
 _CONTROLNET_NAMES = (
     [m["file_name"] for m in _VETTED_MODELS if m["category_id"] == 3]
     or ["(no vetted controlnet models available)"]
+)
+
+_LORA_NAMES = (
+    [m["file_name"] for m in _VETTED_MODELS if m["category_id"] == 5]
+    or ["(no vetted lora models available)"]
 )
 
 
@@ -95,3 +101,39 @@ class PseudoVettedControlNetLoader:
             raise RuntimeError(f"[pseudocomfy] PseudoVettedControlNetLoader: invalid controlnet file: {model}")
         print(f"[pseudocomfy] PseudoVettedControlNetLoader: {model}")
         return (controlnet,)
+
+
+class PseudoVettedLoraLoader:
+    def __init__(self):
+        self.loaded_lora = None
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "lora": (_LORA_NAMES, {}),
+                "strength_model": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.01}),
+            },
+        }
+
+    RETURN_TYPES = ("MODEL",)
+    RETURN_NAMES = ("model",)
+    FUNCTION = "func"
+    CATEGORY = "Pseudocomfy/Loaders"
+
+    def func(self, model, lora, strength_model):
+        if strength_model == 0:
+            return (model,)
+
+        lora_path = folder_paths.get_full_path_or_raise("loras", lora)
+
+        if self.loaded_lora is not None and self.loaded_lora[0] == lora_path:
+            lora_weights, lora_metadata = self.loaded_lora[1], self.loaded_lora[2]
+        else:
+            lora_weights, lora_metadata = comfy.utils.load_torch_file(lora_path, safe_load=True, return_metadata=True)
+            self.loaded_lora = (lora_path, lora_weights, lora_metadata)
+
+        model_out, _ = comfy.sd.load_lora_for_models(model, None, lora_weights, strength_model, 0, lora_metadata=lora_metadata)
+        print(f"[pseudocomfy] PseudoVettedLoraLoader: {lora} (strength: {strength_model})")
+        return (model_out,)
