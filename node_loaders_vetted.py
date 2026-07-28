@@ -26,7 +26,7 @@ def _fetch_vetted_models():
                 "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
             },
             params={
-                "select": "name,file_name,category_id",
+                "select": "id,name,file_name,category_id",
                 "vetting_status_id": "eq.3",
                 "order": "name",
             },
@@ -43,26 +43,28 @@ _VETTED_MODELS = _fetch_vetted_models()
 
 _CHECKPOINT_MODELS = [m for m in _VETTED_MODELS if m["category_id"] == 1]
 _CHECKPOINT_NAMES = [m["file_name"] for m in _CHECKPOINT_MODELS] or ["(no vetted checkpoints available)"]
+_CHECKPOINT_ID_MAP = {m["file_name"]: m["id"] for m in _CHECKPOINT_MODELS}
+_CHECKPOINT_DEFAULT_ID = _CHECKPOINT_MODELS[0]["id"] if _CHECKPOINT_MODELS else ""
 
-_CONTROLNET_NAMES = (
-    [m["file_name"] for m in _VETTED_MODELS if m["category_id"] == 3]
-    or ["(no vetted controlnet models available)"]
-)
+_CONTROLNET_MODELS = [m for m in _VETTED_MODELS if m["category_id"] == 3]
+_CONTROLNET_NAMES = [m["file_name"] for m in _CONTROLNET_MODELS] or ["(no vetted controlnet models available)"]
+_CONTROLNET_ID_MAP = {m["file_name"]: m["id"] for m in _CONTROLNET_MODELS}
+_CONTROLNET_DEFAULT_ID = _CONTROLNET_MODELS[0]["id"] if _CONTROLNET_MODELS else ""
 
-_LORA_NAMES = (
-    [m["file_name"] for m in _VETTED_MODELS if m["category_id"] == 5]
-    or ["(no vetted lora models available)"]
-)
+_LORA_MODELS = [m for m in _VETTED_MODELS if m["category_id"] == 5]
+_LORA_NAMES = [m["file_name"] for m in _LORA_MODELS] or ["(no vetted lora models available)"]
+_LORA_ID_MAP = {m["file_name"]: m["id"] for m in _LORA_MODELS}
+_LORA_DEFAULT_ID = _LORA_MODELS[0]["id"] if _LORA_MODELS else ""
 
-_CLIP_NAMES = (
-    [m["file_name"] for m in _VETTED_MODELS if m["category_id"] == 7]
-    or ["(no vetted CLIP models available)"]
-)
+_CLIP_MODELS = [m for m in _VETTED_MODELS if m["category_id"] == 7]
+_CLIP_NAMES = [m["file_name"] for m in _CLIP_MODELS] or ["(no vetted CLIP models available)"]
+_CLIP_ID_MAP = {m["file_name"]: m["id"] for m in _CLIP_MODELS}
+_CLIP_DEFAULT_ID = _CLIP_MODELS[0]["id"] if _CLIP_MODELS else ""
 
-_VAE_NAMES = (
-    [m["file_name"] for m in _VETTED_MODELS if m["category_id"] == 6]
-    or ["(no vetted VAE models available)"]
-)
+_VAE_MODELS = [m for m in _VETTED_MODELS if m["category_id"] == 6]
+_VAE_NAMES = [m["file_name"] for m in _VAE_MODELS] or ["(no vetted VAE models available)"]
+_VAE_ID_MAP = {m["file_name"]: m["id"] for m in _VAE_MODELS}
+_VAE_DEFAULT_ID = _VAE_MODELS[0]["id"] if _VAE_MODELS else ""
 
 
 class PseudoVettedCheckpointLoader:
@@ -70,7 +72,8 @@ class PseudoVettedCheckpointLoader:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "model": (_CHECKPOINT_NAMES, {}),
+                "model": (_CHECKPOINT_NAMES, {"model_ids": _CHECKPOINT_ID_MAP}),
+                "model_id": ("STRING", {"default": _CHECKPOINT_DEFAULT_ID}),
             },
         }
 
@@ -79,7 +82,7 @@ class PseudoVettedCheckpointLoader:
     FUNCTION = "func"
     CATEGORY = "Pseudocomfy/Loaders"
 
-    def func(self, model):
+    def func(self, model, model_id=""):
         ckpt_path = folder_paths.get_full_path_or_raise("checkpoints", model)
         out = comfy.sd.load_checkpoint_guess_config(
             ckpt_path,
@@ -96,7 +99,8 @@ class PseudoVettedControlNetLoader:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "model": (_CONTROLNET_NAMES, {}),
+                "model": (_CONTROLNET_NAMES, {"model_ids": _CONTROLNET_ID_MAP}),
+                "model_id": ("STRING", {"default": _CONTROLNET_DEFAULT_ID}),
             },
         }
 
@@ -105,7 +109,7 @@ class PseudoVettedControlNetLoader:
     FUNCTION = "func"
     CATEGORY = "Pseudocomfy/Loaders"
 
-    def func(self, model):
+    def func(self, model, model_id=""):
         controlnet_path = folder_paths.get_full_path_or_raise("controlnet", model)
         controlnet = comfy.controlnet.load_controlnet(controlnet_path)
         if controlnet is None:
@@ -123,7 +127,8 @@ class PseudoVettedLoraLoader:
         return {
             "required": {
                 "model": ("MODEL",),
-                "lora": (_LORA_NAMES, {}),
+                "lora": (_LORA_NAMES, {"model_ids": _LORA_ID_MAP}),
+                "lora_model_id": ("STRING", {"default": _LORA_DEFAULT_ID}),
                 "strength_model": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.01}),
             },
         }
@@ -133,7 +138,7 @@ class PseudoVettedLoraLoader:
     FUNCTION = "func"
     CATEGORY = "Pseudocomfy/Loaders"
 
-    def func(self, model, lora, strength_model):
+    def func(self, model, lora, lora_model_id="", strength_model=1.0):
         if strength_model == 0:
             return (model,)
 
@@ -155,7 +160,8 @@ class PseudoVettedClipLoader:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "model": (_CLIP_NAMES, {}),
+                "model": (_CLIP_NAMES, {"model_ids": _CLIP_ID_MAP}),
+                "model_id": ("STRING", {"default": _CLIP_DEFAULT_ID}),
                 "type": (["stable_diffusion", "stable_cascade", "sd3", "flux"], {}),
                 "device": (["default", "cpu"], {"advanced": True}),
             },
@@ -166,7 +172,7 @@ class PseudoVettedClipLoader:
     FUNCTION = "func"
     CATEGORY = "Pseudocomfy/Loaders"
 
-    def func(self, model, type="stable_diffusion", device="default"):
+    def func(self, model, model_id="", type="stable_diffusion", device="default"):
         if model == "(no vetted CLIP models available)":
             raise RuntimeError("[pseudocomfy] PseudoVettedClipLoader: no vetted CLIP models available in the database.")
 
@@ -195,14 +201,19 @@ class PseudoVettedClipLoader:
 class PseudoVettedVaeLoader:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": {"model": (_VAE_NAMES, {})}}
+        return {
+            "required": {
+                "model": (_VAE_NAMES, {"model_ids": _VAE_ID_MAP}),
+                "model_id": ("STRING", {"default": _VAE_DEFAULT_ID}),
+            },
+        }
 
     RETURN_TYPES = ("VAE",)
     RETURN_NAMES = ("vae",)
     FUNCTION = "func"
     CATEGORY = "Pseudocomfy/Loaders"
 
-    def func(self, model):
+    def func(self, model, model_id=""):
         if model == "(no vetted VAE models available)":
             raise RuntimeError("[pseudocomfy] PseudoVettedVaeLoader: no vetted VAE models available in the database.")
         vae_path = folder_paths.get_full_path_or_raise("vae", model)
