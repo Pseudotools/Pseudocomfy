@@ -31,6 +31,7 @@ NODE_CLASS_MAPPINGS = {
     "PseudoVettedCheckpointLoader": PseudoVettedCheckpointLoader,
     "PseudoVettedControlNetLoader": PseudoVettedControlNetLoader,
     "PseudoVettedLoraLoader": PseudoVettedLoraLoader,
+    "PseudoVettedClipLoader": PseudoVettedClipLoader,
 
     # io
     "PseudoSaveImageWithEmbeddedMasks": PseudoSaveImageWithEmbeddedMasks,
@@ -76,6 +77,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PseudoVettedCheckpointLoader": "Vetted Checkpoint Loader",
     "PseudoVettedControlNetLoader": "Vetted ControlNet Loader",
     "PseudoVettedLoraLoader": "Vetted LoRA Loader",
+    "PseudoVettedClipLoader": "Vetted CLIP Loader",
 
     # io
     "PseudoSaveImageWithEmbeddedMasks": "Save Image with Embedded Masks",
