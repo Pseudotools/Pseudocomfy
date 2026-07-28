@@ -128,7 +128,7 @@ class PseudoVettedLoraLoader:
             "required": {
                 "model": ("MODEL",),
                 "lora": (_LORA_NAMES, {"model_ids": _LORA_ID_MAP}),
-                "lora_model_id": ("STRING", {"default": _LORA_DEFAULT_ID}),
+                "model_id": ("STRING", {"default": _LORA_DEFAULT_ID}),
                 "strength_model": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.01}),
             },
         }
@@ -138,7 +138,7 @@ class PseudoVettedLoraLoader:
     FUNCTION = "func"
     CATEGORY = "Pseudocomfy/Loaders"
 
-    def func(self, model, lora, lora_model_id="", strength_model=1.0):
+    def func(self, model, lora, model_id="", strength_model=1.0):
         if strength_model == 0:
             return (model,)
 

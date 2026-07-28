@@ -3,7 +3,7 @@ import { app } from "../../../scripts/app.js";
 const VETTED_LOADER_CONFIGS = [
     { nodeName: "PseudoVettedCheckpointLoader", comboWidget: "model", idWidget: "model_id" },
     { nodeName: "PseudoVettedControlNetLoader", comboWidget: "model", idWidget: "model_id" },
-    { nodeName: "PseudoVettedLoraLoader",       comboWidget: "lora",  idWidget: "lora_model_id" },
+    { nodeName: "PseudoVettedLoraLoader",       comboWidget: "lora",  idWidget: "model_id" },
     { nodeName: "PseudoVettedClipLoader",       comboWidget: "model", idWidget: "model_id" },
     { nodeName: "PseudoVettedVaeLoader",        comboWidget: "model", idWidget: "model_id" },
 ];
