@@ -2,6 +2,7 @@ from .node_conditioning import *
 from .node_io import *
 from .node_ipadapter_loader import *
 from .node_loaders_snapshot import *
+from .node_loaders_vetted import *
 from .node_processing import *
 from .node_utils import *
 from .node_vars import *
@@ -27,6 +28,7 @@ NODE_CLASS_MAPPINGS = {
     # loaders
     "PseudoLoadModelSnapshot": PseudoLoadModelSnapshot,
     "PseudoUnpackModelSnapshot": PseudoUnpackModelSnapshot,
+    "PseudoVettedCheckpointLoader": PseudoVettedCheckpointLoader,
 
     # io
     "PseudoSaveImageWithEmbeddedMasks": PseudoSaveImageWithEmbeddedMasks,
@@ -69,6 +71,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     # loaders
     "PseudoLoadModelSnapshot": "Load Model Snapshot",
     "PseudoUnpackModelSnapshot": "Unpack Model Snapshot",
+    "PseudoVettedCheckpointLoader": "Vetted Checkpoint Loader",
 
     # io
     "PseudoSaveImageWithEmbeddedMasks": "Save Image with Embedded Masks",
