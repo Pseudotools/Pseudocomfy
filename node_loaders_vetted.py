@@ -126,8 +126,8 @@ class PseudoVettedLoraLoader:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "model": ("MODEL",),
-                "lora": (_LORA_NAMES, {"model_ids": _LORA_ID_MAP}),
+                "model_input": ("MODEL",),
+                "model": (_LORA_NAMES, {"model_ids": _LORA_ID_MAP}),
                 "model_id": ("STRING", {"default": _LORA_DEFAULT_ID}),
                 "strength_model": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.01}),
             },
@@ -138,11 +138,11 @@ class PseudoVettedLoraLoader:
     FUNCTION = "func"
     CATEGORY = "Pseudocomfy/Loaders"
 
-    def func(self, model, lora, model_id="", strength_model=1.0):
+    def func(self, model_input, model, model_id="", strength_model=1.0):
         if strength_model == 0:
-            return (model,)
+            return (model_input,)
 
-        lora_path = folder_paths.get_full_path_or_raise("loras", lora)
+        lora_path = folder_paths.get_full_path_or_raise("loras", model)
 
         if self.loaded_lora is not None and self.loaded_lora[0] == lora_path:
             lora_weights, lora_metadata = self.loaded_lora[1], self.loaded_lora[2]
@@ -150,8 +150,8 @@ class PseudoVettedLoraLoader:
             lora_weights, lora_metadata = comfy.utils.load_torch_file(lora_path, safe_load=True, return_metadata=True)
             self.loaded_lora = (lora_path, lora_weights, lora_metadata)
 
-        model_out, _ = comfy.sd.load_lora_for_models(model, None, lora_weights, strength_model, 0, lora_metadata=lora_metadata)
-        print(f"[pseudocomfy] PseudoVettedLoraLoader: {lora} (strength: {strength_model})")
+        model_out, _ = comfy.sd.load_lora_for_models(model_input, None, lora_weights, strength_model, 0, lora_metadata=lora_metadata)
+        print(f"[pseudocomfy] PseudoVettedLoraLoader: {model} (strength: {strength_model})")
         return (model_out,)
 
 
