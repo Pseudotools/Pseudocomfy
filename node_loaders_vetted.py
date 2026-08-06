@@ -1,3 +1,4 @@
+import concurrent.futures
 import requests
 import torch
 import folder_paths
@@ -6,65 +7,112 @@ import comfy.controlnet
 import comfy.utils
 
 
-SUPABASE_URL = "https://psfxsrilludczykwdyxz.supabase.co/rest/v1"
+_HF_TAG_TO_CATEGORY = {
+    "checkpoint":  "checkpoint",
+    "controlnet":  "controlnet",
+    "lora":        "lora",
+    "clip-vision": "clip_vision",
+}
 
-# This is the Supabase anon key — intentionally public-facing. Access is
-# governed by Row Level Security policies on the Supabase side.
-SUPABASE_ANON_KEY = (
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
-    ".eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzZnhzcmlsbHVkY3p5a3dkeXh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1NDMwNDgsImV4cCI6MjA5OTExOTA0OH0"
-    ".WewS_QERP0nhd9O7uIXQ0evKhfjci04QCGBHJeH8pLk"
-)
+
+def _category_of(tags):
+    for tag in (tags or []):
+        cat = _HF_TAG_TO_CATEGORY.get(tag)
+        if cat:
+            return cat
+    return None
+
+
+def _parse_front_matter(text):
+    if not isinstance(text, str) or not text.startswith("---"):
+        return {}
+    end = text.find("\n---", 3)
+    if end == -1:
+        return {}
+    result = {}
+    for line in text[3:end].splitlines():
+        if ":" not in line:
+            continue
+        key, _, val = line.partition(":")
+        result[key.strip()] = val.strip().strip('"').strip("'")
+    return result
+
+
+def _clean_string(val):
+    if not isinstance(val, str):
+        return None
+    val = val.strip()
+    return None if (not val or val == "in_progress") else val
+
+
+def _fetch_requirement(record_id):
+    try:
+        resp = requests.get(
+            f"https://huggingface.co/{record_id}/raw/main/README.md",
+            timeout=10,
+        )
+        if not resp.ok:
+            return None
+        return _clean_string(_parse_front_matter(resp.text).get("artifact_file"))
+    except Exception:
+        return None
 
 
 def _fetch_vetted_models():
     try:
-        response = requests.get(
-            f"{SUPABASE_URL}/models",
-            headers={
-                "apikey": SUPABASE_ANON_KEY,
-                "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
-            },
-            params={
-                "select": "id,name,file_name,category_id",
-                "vetting_status_id": "eq.3",
-                "order": "name",
-            },
+        resp = requests.get(
+            "https://huggingface.co/api/models",
+            params={"author": "pseudotools"},
             timeout=10,
         )
-        response.raise_for_status()
-        return response.json()
+        resp.raise_for_status()
+        repos = resp.json()
     except Exception as e:
-        print(f"[pseudocomfy] failed to fetch vetted models: {e}")
+        print(f"[pseudocomfy] failed to fetch models from HuggingFace: {e}")
         return []
+
+    candidates = [
+        {"record_id": r["id"], "category": _category_of(r.get("tags"))}
+        for r in repos
+        if _category_of(r.get("tags"))
+    ]
+
+    def enrich(m):
+        req = _fetch_requirement(m["record_id"])
+        return {**m, "requirement": req} if req else None
+
+    results = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        for result in executor.map(enrich, candidates):
+            if result:
+                results.append(result)
+
+    results.sort(key=lambda m: m["requirement"])
+    print(f"[pseudocomfy] loaded {len(results)} models from HuggingFace")
+    return results
 
 
 _VETTED_MODELS = _fetch_vetted_models()
 
-_CHECKPOINT_MODELS = [m for m in _VETTED_MODELS if m["category_id"] == 1]
-_CHECKPOINT_NAMES = [m["file_name"] for m in _CHECKPOINT_MODELS] or ["(no vetted checkpoints available)"]
-_CHECKPOINT_ID_MAP = {m["file_name"]: m["id"] for m in _CHECKPOINT_MODELS}
-_CHECKPOINT_DEFAULT_ID = _CHECKPOINT_MODELS[0]["id"] if _CHECKPOINT_MODELS else ""
+_CHECKPOINT_MODELS = [m for m in _VETTED_MODELS if m["category"] == "checkpoint"]
+_CHECKPOINT_NAMES = [m["requirement"] for m in _CHECKPOINT_MODELS] or ["(no vetted checkpoints available)"]
+_CHECKPOINT_ID_MAP = {m["requirement"]: m["record_id"] for m in _CHECKPOINT_MODELS}
+_CHECKPOINT_DEFAULT_ID = _CHECKPOINT_MODELS[0]["record_id"] if _CHECKPOINT_MODELS else ""
 
-_CONTROLNET_MODELS = [m for m in _VETTED_MODELS if m["category_id"] == 3]
-_CONTROLNET_NAMES = [m["file_name"] for m in _CONTROLNET_MODELS] or ["(no vetted controlnet models available)"]
-_CONTROLNET_ID_MAP = {m["file_name"]: m["id"] for m in _CONTROLNET_MODELS}
-_CONTROLNET_DEFAULT_ID = _CONTROLNET_MODELS[0]["id"] if _CONTROLNET_MODELS else ""
+_CONTROLNET_MODELS = [m for m in _VETTED_MODELS if m["category"] == "controlnet"]
+_CONTROLNET_NAMES = [m["requirement"] for m in _CONTROLNET_MODELS] or ["(no vetted controlnet models available)"]
+_CONTROLNET_ID_MAP = {m["requirement"]: m["record_id"] for m in _CONTROLNET_MODELS}
+_CONTROLNET_DEFAULT_ID = _CONTROLNET_MODELS[0]["record_id"] if _CONTROLNET_MODELS else ""
 
-_LORA_MODELS = [m for m in _VETTED_MODELS if m["category_id"] == 5]
-_LORA_NAMES = [m["file_name"] for m in _LORA_MODELS] or ["(no vetted lora models available)"]
-_LORA_ID_MAP = {m["file_name"]: m["id"] for m in _LORA_MODELS}
-_LORA_DEFAULT_ID = _LORA_MODELS[0]["id"] if _LORA_MODELS else ""
+_LORA_MODELS = [m for m in _VETTED_MODELS if m["category"] == "lora"]
+_LORA_NAMES = [m["requirement"] for m in _LORA_MODELS] or ["(no vetted lora models available)"]
+_LORA_ID_MAP = {m["requirement"]: m["record_id"] for m in _LORA_MODELS}
+_LORA_DEFAULT_ID = _LORA_MODELS[0]["record_id"] if _LORA_MODELS else ""
 
-_CLIP_MODELS = [m for m in _VETTED_MODELS if m["category_id"] == 7]
-_CLIP_NAMES = [m["file_name"] for m in _CLIP_MODELS] or ["(no vetted CLIP models available)"]
-_CLIP_ID_MAP = {m["file_name"]: m["id"] for m in _CLIP_MODELS}
-_CLIP_DEFAULT_ID = _CLIP_MODELS[0]["id"] if _CLIP_MODELS else ""
-
-_VAE_MODELS = [m for m in _VETTED_MODELS if m["category_id"] == 6]
-_VAE_NAMES = [m["file_name"] for m in _VAE_MODELS] or ["(no vetted VAE models available)"]
-_VAE_ID_MAP = {m["file_name"]: m["id"] for m in _VAE_MODELS}
-_VAE_DEFAULT_ID = _VAE_MODELS[0]["id"] if _VAE_MODELS else ""
+_CLIP_MODELS = [m for m in _VETTED_MODELS if m["category"] == "clip_vision"]
+_CLIP_NAMES = [m["requirement"] for m in _CLIP_MODELS] or ["(no vetted CLIP models available)"]
+_CLIP_ID_MAP = {m["requirement"]: m["record_id"] for m in _CLIP_MODELS}
+_CLIP_DEFAULT_ID = _CLIP_MODELS[0]["record_id"] if _CLIP_MODELS else ""
 
 
 class PseudoVettedCheckpointLoader:
@@ -72,8 +120,8 @@ class PseudoVettedCheckpointLoader:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "model": (_CHECKPOINT_NAMES, {"model_ids": _CHECKPOINT_ID_MAP}),
-                "model_id": ("STRING", {"default": _CHECKPOINT_DEFAULT_ID}),
+                "model": (_CHECKPOINT_NAMES, {"record_ids": _CHECKPOINT_ID_MAP}),
+                "record_id": ("STRING", {"default": _CHECKPOINT_DEFAULT_ID}),
             },
         }
 
@@ -82,7 +130,7 @@ class PseudoVettedCheckpointLoader:
     FUNCTION = "func"
     CATEGORY = "Pseudocomfy/Loaders"
 
-    def func(self, model, model_id=""):
+    def func(self, model, record_id=""):
         ckpt_path = folder_paths.get_full_path_or_raise("checkpoints", model)
         out = comfy.sd.load_checkpoint_guess_config(
             ckpt_path,
@@ -99,8 +147,8 @@ class PseudoVettedControlNetLoader:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "model": (_CONTROLNET_NAMES, {"model_ids": _CONTROLNET_ID_MAP}),
-                "model_id": ("STRING", {"default": _CONTROLNET_DEFAULT_ID}),
+                "model": (_CONTROLNET_NAMES, {"record_ids": _CONTROLNET_ID_MAP}),
+                "record_id": ("STRING", {"default": _CONTROLNET_DEFAULT_ID}),
             },
         }
 
@@ -109,7 +157,7 @@ class PseudoVettedControlNetLoader:
     FUNCTION = "func"
     CATEGORY = "Pseudocomfy/Loaders"
 
-    def func(self, model, model_id=""):
+    def func(self, model, record_id=""):
         controlnet_path = folder_paths.get_full_path_or_raise("controlnet", model)
         controlnet = comfy.controlnet.load_controlnet(controlnet_path)
         if controlnet is None:
@@ -127,8 +175,8 @@ class PseudoVettedLoraLoader:
         return {
             "required": {
                 "model_input": ("MODEL",),
-                "model": (_LORA_NAMES, {"model_ids": _LORA_ID_MAP}),
-                "model_id": ("STRING", {"default": _LORA_DEFAULT_ID}),
+                "model": (_LORA_NAMES, {"record_ids": _LORA_ID_MAP}),
+                "record_id": ("STRING", {"default": _LORA_DEFAULT_ID}),
                 "strength_model": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.01}),
             },
         }
@@ -138,7 +186,7 @@ class PseudoVettedLoraLoader:
     FUNCTION = "func"
     CATEGORY = "Pseudocomfy/Loaders"
 
-    def func(self, model_input, model, model_id="", strength_model=1.0):
+    def func(self, model_input, model, record_id="", strength_model=1.0):
         if strength_model == 0:
             return (model_input,)
 
@@ -160,8 +208,8 @@ class PseudoVettedClipLoader:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "model": (_CLIP_NAMES, {"model_ids": _CLIP_ID_MAP}),
-                "model_id": ("STRING", {"default": _CLIP_DEFAULT_ID}),
+                "model": (_CLIP_NAMES, {"record_ids": _CLIP_ID_MAP}),
+                "record_id": ("STRING", {"default": _CLIP_DEFAULT_ID}),
                 "type": (["stable_diffusion", "stable_cascade", "sd3", "flux"], {}),
                 "device": (["default", "cpu"], {"advanced": True}),
             },
@@ -172,9 +220,9 @@ class PseudoVettedClipLoader:
     FUNCTION = "func"
     CATEGORY = "Pseudocomfy/Loaders"
 
-    def func(self, model, model_id="", type="stable_diffusion", device="default"):
+    def func(self, model, record_id="", type="stable_diffusion", device="default"):
         if model == "(no vetted CLIP models available)":
-            raise RuntimeError("[pseudocomfy] PseudoVettedClipLoader: no vetted CLIP models available in the database.")
+            raise RuntimeError("[pseudocomfy] PseudoVettedClipLoader: no vetted CLIP models available.")
 
         clip_type_map = {
             "stable_cascade": comfy.sd.CLIPType.STABLE_CASCADE,
@@ -196,29 +244,3 @@ class PseudoVettedClipLoader:
         )
         print(f"[pseudocomfy] PseudoVettedClipLoader: {model}")
         return (clip,)
-
-
-class PseudoVettedVaeLoader:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "model": (_VAE_NAMES, {"model_ids": _VAE_ID_MAP}),
-                "model_id": ("STRING", {"default": _VAE_DEFAULT_ID}),
-            },
-        }
-
-    RETURN_TYPES = ("VAE",)
-    RETURN_NAMES = ("vae",)
-    FUNCTION = "func"
-    CATEGORY = "Pseudocomfy/Loaders"
-
-    def func(self, model, model_id=""):
-        if model == "(no vetted VAE models available)":
-            raise RuntimeError("[pseudocomfy] PseudoVettedVaeLoader: no vetted VAE models available in the database.")
-        vae_path = folder_paths.get_full_path_or_raise("vae", model)
-        sd, metadata = comfy.utils.load_torch_file(vae_path, return_metadata=True)
-        vae = comfy.sd.VAE(sd=sd, metadata=metadata)
-        vae.throw_exception_if_invalid()
-        print(f"[pseudocomfy] PseudoVettedVaeLoader: {model}")
-        return (vae,)
