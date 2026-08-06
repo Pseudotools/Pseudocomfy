@@ -1,11 +1,10 @@
 import { app } from "../../../scripts/app.js";
 
 const VETTED_LOADER_CONFIGS = [
-    { nodeName: "PseudoVettedCheckpointLoader", comboWidget: "model", idWidget: "model_id" },
-    { nodeName: "PseudoVettedControlNetLoader", comboWidget: "model", idWidget: "model_id" },
-    { nodeName: "PseudoVettedLoraLoader",       comboWidget: "model", idWidget: "model_id" },
-    { nodeName: "PseudoVettedClipLoader",       comboWidget: "model", idWidget: "model_id" },
-    { nodeName: "PseudoVettedVaeLoader",        comboWidget: "model", idWidget: "model_id" },
+    { nodeName: "PseudoVettedCheckpointLoader", comboWidget: "model", idWidget: "record_id" },
+    { nodeName: "PseudoVettedControlNetLoader", comboWidget: "model", idWidget: "record_id" },
+    { nodeName: "PseudoVettedLoraLoader",       comboWidget: "model", idWidget: "record_id" },
+    { nodeName: "PseudoVettedClipLoader",       comboWidget: "model", idWidget: "record_id" },
 ];
 
 for (const { nodeName, comboWidget, idWidget } of VETTED_LOADER_CONFIGS) {
@@ -14,7 +13,7 @@ for (const { nodeName, comboWidget, idWidget } of VETTED_LOADER_CONFIGS) {
         async beforeRegisterNodeDef(nodeType, nodeData) {
             if (nodeData.name !== nodeName) return;
 
-            const modelIds = nodeData.input?.required?.[comboWidget]?.[1]?.model_ids ?? {};
+            const recordIds = nodeData.input?.required?.[comboWidget]?.[1]?.record_ids ?? {};
 
             const onNodeCreated = nodeType.prototype.onNodeCreated;
             nodeType.prototype.onNodeCreated = function () {
@@ -27,7 +26,7 @@ for (const { nodeName, comboWidget, idWidget } of VETTED_LOADER_CONFIGS) {
                 const origCallback = comboW.callback;
                 comboW.callback = function (value) {
                     origCallback?.apply(this, arguments);
-                    idW.value = modelIds[value] ?? "";
+                    idW.value = recordIds[value] ?? "";
                 };
             };
         },
