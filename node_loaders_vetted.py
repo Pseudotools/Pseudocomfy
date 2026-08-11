@@ -7,65 +7,36 @@ import comfy.controlnet
 import comfy.utils
 
 
-def _parse_front_matter(text):
-    if not isinstance(text, str) or not text.startswith("---"):
-        return {}
-    end = text.find("\n---", 3)
-    if end == -1:
-        return {}
-    result = {}
-    for line in text[3:end].splitlines():
-        if ":" not in line or line.startswith(" "):
-            continue
-        key, _, val = line.partition(":")
-        result[key.strip()] = val.strip().strip('"').strip("'")
-    return result
+# Model listings and cards are served through the Pseudotools API rather
+# than fetched from huggingface.co directly, so the node never talks to a
+# third party and pseudotools.com stays the single place that controls
+# what "vetted" means (caching, rate limits, backing store) for every
+# ComfyUI install that has this node.
+PSEUDOTOOLS_API = "https://tools.pseudotools.com/api/models"
 
 
-def _clean_string(val):
-    if not isinstance(val, str):
-        return None
-    val = val.strip()
-    return None if (not val or val == "in_progress") else val
-
-
-def _fetch_model_data(record_id):
+def _fetch_requirement(record_id):
     try:
-        resp = requests.get(
-            f"https://huggingface.co/{record_id}/raw/main/README.md",
-            timeout=10,
-        )
+        resp = requests.get(f"{PSEUDOTOOLS_API}/hf/{record_id}", timeout=10)
         if not resp.ok:
             return None
-        fm = _parse_front_matter(resp.text)
-        requirement = _clean_string(fm.get("requirement"))
-        category = _clean_string(fm.get("category"))
-        if not requirement or not category:
-            return None
-        return {"requirement": requirement, "category": category}
+        return resp.json().get("requirement") or None
     except Exception:
         return None
 
 
 def _fetch_vetted_models():
     try:
-        resp = requests.get(
-            "https://huggingface.co/api/models",
-            params={"author": "pseudotools"},
-            timeout=10,
-        )
+        resp = requests.get(PSEUDOTOOLS_API, timeout=10)
         resp.raise_for_status()
         repos = resp.json()
     except Exception as e:
-        print(f"[pseudocomfy] failed to fetch models from HuggingFace: {e}")
+        print(f"[pseudocomfy] failed to fetch models from Pseudotools API: {e}")
         return []
 
     def enrich(repo):
-        record_id = repo.get("id")
-        if not record_id:
-            return None
-        data = _fetch_model_data(record_id)
-        return {**data, "record_id": record_id} if data else None
+        requirement = _fetch_requirement(repo["record_id"])
+        return {"record_id": repo["record_id"], "category": repo["category"], "requirement": requirement} if requirement else None
 
     results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
@@ -74,7 +45,7 @@ def _fetch_vetted_models():
                 results.append(result)
 
     results.sort(key=lambda m: m["requirement"])
-    print(f"[pseudocomfy] loaded {len(results)} models from HuggingFace")
+    print(f"[pseudocomfy] loaded {len(results)} models from Pseudotools API")
     return results
 
 
