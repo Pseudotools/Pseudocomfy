@@ -7,94 +7,51 @@ import comfy.controlnet
 import comfy.utils
 
 
-_HF_TAG_TO_CATEGORY = {
-    "checkpoint":  "checkpoint",
-    "controlnet":  "controlnet",
-    "lora":        "lora",
-    "clip-vision": "clip_vision",
-}
-
-
-def _category_of(tags):
-    for tag in (tags or []):
-        cat = _HF_TAG_TO_CATEGORY.get(tag)
-        if cat:
-            return cat
-    return None
-
-
-def _parse_front_matter(text):
-    if not isinstance(text, str) or not text.startswith("---"):
-        return {}
-    end = text.find("\n---", 3)
-    if end == -1:
-        return {}
-    result = {}
-    for line in text[3:end].splitlines():
-        if ":" not in line:
-            continue
-        key, _, val = line.partition(":")
-        result[key.strip()] = val.strip().strip('"').strip("'")
-    return result
-
-
-def _clean_string(val):
-    if not isinstance(val, str):
-        return None
-    val = val.strip()
-    return None if (not val or val == "in_progress") else val
+# Model listings and cards are served through the Pseudotools API rather
+# than fetched from huggingface.co directly, so the node never talks to a
+# third party and pseudotools.com stays the single place that controls
+# what "vetted" means (caching, rate limits, backing store) for every
+# ComfyUI install that has this node.
+PSEUDOTOOLS_API = "https://tools.pseudotools.com/api/models"
 
 
 def _fetch_requirement(record_id):
     try:
-        resp = requests.get(
-            f"https://huggingface.co/{record_id}/raw/main/README.md",
-            timeout=10,
-        )
+        resp = requests.get(f"{PSEUDOTOOLS_API}/hf/{record_id}", timeout=10)
         if not resp.ok:
             return None
-        return _clean_string(_parse_front_matter(resp.text).get("artifact_file"))
+        return resp.json().get("requirement") or None
     except Exception:
         return None
 
 
 def _fetch_vetted_models():
     try:
-        resp = requests.get(
-            "https://huggingface.co/api/models",
-            params={"author": "pseudotools"},
-            timeout=10,
-        )
+        resp = requests.get(PSEUDOTOOLS_API, timeout=10)
         resp.raise_for_status()
         repos = resp.json()
     except Exception as e:
-        print(f"[pseudocomfy] failed to fetch models from HuggingFace: {e}")
+        print(f"[pseudocomfy] failed to fetch models from Pseudotools API: {e}")
         return []
 
-    candidates = [
-        {"record_id": r["id"], "category": _category_of(r.get("tags"))}
-        for r in repos
-        if _category_of(r.get("tags"))
-    ]
-
-    def enrich(m):
-        req = _fetch_requirement(m["record_id"])
-        return {**m, "requirement": req} if req else None
+    def enrich(repo):
+        requirement = _fetch_requirement(repo["record_id"])
+        return {"record_id": repo["record_id"], "category": repo["category"], "requirement": requirement} if requirement else None
 
     results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-        for result in executor.map(enrich, candidates):
+        for result in executor.map(enrich, repos):
             if result:
                 results.append(result)
 
     results.sort(key=lambda m: m["requirement"])
-    print(f"[pseudocomfy] loaded {len(results)} models from HuggingFace")
+    print(f"[pseudocomfy] loaded {len(results)} models from Pseudotools API")
     return results
 
 
 _VETTED_MODELS = _fetch_vetted_models()
 
-_CHECKPOINT_MODELS = [m for m in _VETTED_MODELS if m["category"] == "checkpoint"]
+_CHECKPOINT_MODELS = [m for m in _VETTED_MODELS if m["category"] == "checkpoints"]
 _CHECKPOINT_NAMES = [m["requirement"] for m in _CHECKPOINT_MODELS] or ["(no vetted checkpoints available)"]
 _CHECKPOINT_ID_MAP = {m["requirement"]: m["record_id"] for m in _CHECKPOINT_MODELS}
 _CHECKPOINT_DEFAULT_ID = _CHECKPOINT_MODELS[0]["record_id"] if _CHECKPOINT_MODELS else ""
@@ -104,7 +61,7 @@ _CONTROLNET_NAMES = [m["requirement"] for m in _CONTROLNET_MODELS] or ["(no vett
 _CONTROLNET_ID_MAP = {m["requirement"]: m["record_id"] for m in _CONTROLNET_MODELS}
 _CONTROLNET_DEFAULT_ID = _CONTROLNET_MODELS[0]["record_id"] if _CONTROLNET_MODELS else ""
 
-_LORA_MODELS = [m for m in _VETTED_MODELS if m["category"] == "lora"]
+_LORA_MODELS = [m for m in _VETTED_MODELS if m["category"] == "loras"]
 _LORA_NAMES = [m["requirement"] for m in _LORA_MODELS] or ["(no vetted lora models available)"]
 _LORA_ID_MAP = {m["requirement"]: m["record_id"] for m in _LORA_MODELS}
 _LORA_DEFAULT_ID = _LORA_MODELS[0]["record_id"] if _LORA_MODELS else ""
