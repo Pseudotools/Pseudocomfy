@@ -7,22 +7,6 @@ import comfy.controlnet
 import comfy.utils
 
 
-_HF_TAG_TO_CATEGORY = {
-    "checkpoint":  "checkpoint",
-    "controlnet":  "controlnet",
-    "lora":        "lora",
-    "clip-vision": "clip_vision",
-}
-
-
-def _category_of(tags):
-    for tag in (tags or []):
-        cat = _HF_TAG_TO_CATEGORY.get(tag)
-        if cat:
-            return cat
-    return None
-
-
 def _parse_front_matter(text):
     if not isinstance(text, str) or not text.startswith("---"):
         return {}
@@ -31,7 +15,7 @@ def _parse_front_matter(text):
         return {}
     result = {}
     for line in text[3:end].splitlines():
-        if ":" not in line:
+        if ":" not in line or line.startswith(" "):
             continue
         key, _, val = line.partition(":")
         result[key.strip()] = val.strip().strip('"').strip("'")
@@ -45,7 +29,7 @@ def _clean_string(val):
     return None if (not val or val == "in_progress") else val
 
 
-def _fetch_requirement(record_id):
+def _fetch_model_data(record_id):
     try:
         resp = requests.get(
             f"https://huggingface.co/{record_id}/raw/main/README.md",
@@ -53,7 +37,12 @@ def _fetch_requirement(record_id):
         )
         if not resp.ok:
             return None
-        return _clean_string(_parse_front_matter(resp.text).get("artifact_file"))
+        fm = _parse_front_matter(resp.text)
+        requirement = _clean_string(fm.get("requirement"))
+        category = _clean_string(fm.get("category"))
+        if not requirement or not category:
+            return None
+        return {"requirement": requirement, "category": category}
     except Exception:
         return None
 
@@ -71,19 +60,16 @@ def _fetch_vetted_models():
         print(f"[pseudocomfy] failed to fetch models from HuggingFace: {e}")
         return []
 
-    candidates = [
-        {"record_id": r["id"], "category": _category_of(r.get("tags"))}
-        for r in repos
-        if _category_of(r.get("tags"))
-    ]
-
-    def enrich(m):
-        req = _fetch_requirement(m["record_id"])
-        return {**m, "requirement": req} if req else None
+    def enrich(repo):
+        record_id = repo.get("id")
+        if not record_id:
+            return None
+        data = _fetch_model_data(record_id)
+        return {**data, "record_id": record_id} if data else None
 
     results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-        for result in executor.map(enrich, candidates):
+        for result in executor.map(enrich, repos):
             if result:
                 results.append(result)
 
@@ -94,7 +80,7 @@ def _fetch_vetted_models():
 
 _VETTED_MODELS = _fetch_vetted_models()
 
-_CHECKPOINT_MODELS = [m for m in _VETTED_MODELS if m["category"] == "checkpoint"]
+_CHECKPOINT_MODELS = [m for m in _VETTED_MODELS if m["category"] == "checkpoints"]
 _CHECKPOINT_NAMES = [m["requirement"] for m in _CHECKPOINT_MODELS] or ["(no vetted checkpoints available)"]
 _CHECKPOINT_ID_MAP = {m["requirement"]: m["record_id"] for m in _CHECKPOINT_MODELS}
 _CHECKPOINT_DEFAULT_ID = _CHECKPOINT_MODELS[0]["record_id"] if _CHECKPOINT_MODELS else ""
@@ -104,7 +90,7 @@ _CONTROLNET_NAMES = [m["requirement"] for m in _CONTROLNET_MODELS] or ["(no vett
 _CONTROLNET_ID_MAP = {m["requirement"]: m["record_id"] for m in _CONTROLNET_MODELS}
 _CONTROLNET_DEFAULT_ID = _CONTROLNET_MODELS[0]["record_id"] if _CONTROLNET_MODELS else ""
 
-_LORA_MODELS = [m for m in _VETTED_MODELS if m["category"] == "lora"]
+_LORA_MODELS = [m for m in _VETTED_MODELS if m["category"] == "loras"]
 _LORA_NAMES = [m["requirement"] for m in _LORA_MODELS] or ["(no vetted lora models available)"]
 _LORA_ID_MAP = {m["requirement"]: m["record_id"] for m in _LORA_MODELS}
 _LORA_DEFAULT_ID = _LORA_MODELS[0]["record_id"] if _LORA_MODELS else ""
